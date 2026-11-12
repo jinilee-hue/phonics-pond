@@ -1002,6 +1002,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 :root[data-dial="open"] .b-fabside{visibility:hidden}   /* the open menu has the flow cards */
 @media (prefers-reduced-motion:reduce){.b-dialitem,.b-qitem{animation:none}}
 :root[data-screen="full"] .b-fabbtn{touch-action:none;-webkit-user-select:none;user-select:none}   /* a finger drag moves the button instead of scrolling */
+:root[data-screen="full"] .b-fabbtn{border-color:transparent !important}   /* no line on the one button either (user: "가운데 버튼에도 선은 넣지마"); the white / bright theme rules set a line colour */
 :root.is-moving,:root.is-moving *{cursor:grabbing!important;-webkit-user-select:none;user-select:none}
 .b-dreset{border-color:var(--ctl-line)}
 .b-dreset:disabled{color:var(--tx3);cursor:default}
