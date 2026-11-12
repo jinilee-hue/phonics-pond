@@ -609,7 +609,8 @@
   }
   function setGuide(on) { guideOpen = !!on && CLASSROOM(); root.dataset.guide = guideOpen ? 'open' : 'closed'; renderFab(); requestAnimationFrame(placeFab); }
   function setDial(on) {   // the one button's menu: dim + the layer (today's flow, Meaning First) + Settings · Quick · Guide on a half disc
-    dialOpen = !!on && CLASSROOM(); root.dataset.dial = dialOpen ? 'open' : 'closed'; if (!dialOpen) quickOpen = false;
+    const was = dialOpen; dialOpen = !!on && CLASSROOM(); root.dataset.dial = dialOpen ? 'open' : 'closed';
+    if (!dialOpen) quickOpen = false; else if (!was) quickOpen = true;   // opens with Quick on, its ring at once (user: "가운데 눌렀을때 퀵 버튼이 활성화되서 퀵 세부메뉴까지 뿌려진 상태"); Quick folds it
     renderLayer(); placeFab(); renderFab();
   }
   function renderLayer() {   // user: "버튼 밑에는 오늘 학습 플로우와 meaning first 활동들이 밑에서 레이어 팝업형태로 올라오게"
