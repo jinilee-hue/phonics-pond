@@ -582,7 +582,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-scode small{display:block;font-size:12px;font-weight:700;color:var(--tx3)}
 .b-stx .b-scode b{display:block;margin:2px 0;font-size:28px;font-weight:800;letter-spacing:.14em;line-height:1.1}
 .b-scode span{display:block;font-size:12.5px;line-height:1.4;color:var(--tx2)}
-.b-sfoot{display:flex;justify-content:flex-end;margin-top:12px}
+.b-sfoot{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px}   /* [Open a tablet preview] [Stop sharing] side by side */
 /* display */
 .b-pop--display{width:540px}
 .b-dsec h4{margin-top:16px}
@@ -947,8 +947,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-layer .b-xi.is-soon .b-xthumb{color:#9AA1AD}
 /* a class tool on the board: its settings in the layer under the × (user: "timer설정하는 기능과 pick 기능 설정하는건 x 버튼 밑에");
    the board is only lightly dimmed so the clock / the pick card stay in view */
-:root[data-dialtool="timer"] .b-dim,:root[data-dialtool="pick"] .b-dim,:root[data-dialtool="pause"] .b-dim{background:rgba(8,10,14,.16)}
-.b-lytray--pause .b-lyhead{margin:0}   /* Eyes on me: one row — the header, then Lesson (· Resume) */
+:root[data-dialtool="timer"] .b-dim,:root[data-dialtool="pick"] .b-dim{background:rgba(8,10,14,.16)}
 .b-lyhead--tool{gap:16px;margin-bottom:12px}
 .b-lyhead--tool h3{gap:10px}
 .b-lyhead--tool h3 .i{width:24px;height:24px;color:var(--acc-text)}
