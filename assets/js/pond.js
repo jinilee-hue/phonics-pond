@@ -81,7 +81,7 @@
 
   /* ---------- class tools shown on the student screen ---------- */
   let scene = 'lesson', resumeTo = 'lesson';                 // lesson | timer | pick | pause
-  const TM = { dur: 60000, left: 60000, endAt: 0, run: false, done: false };
+  const TM = { dur: 60000, left: 60000, endAt: 0, run: false, done: false, windAt: 0 };
   const tLeft = () => (TM.run ? Math.max(0, TM.endAt - Date.now()) : TM.left);
   const tActive = () => TM.run || TM.done || TM.left < TM.dur;
   const PK = { name: '', seq: null, t0: 0 };
@@ -100,38 +100,117 @@
   const avColor = n => { let h = 7; for (const ch of String(n)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV[h % AV.length]; };
   const initial = n => esc((String(n).trim().charAt(0) || '?').toUpperCase());
   const clock = ms => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const lowMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;   // (RM lives in the teacher part; the student window shares this code)
+  const sfxOn = () => !STUDENT && get('pondc-sfx', true) !== false;   // Display › Sound effects (user: "17번"); the tablets stay quiet
+  function sfx(kind) {   // short classroom signals from this screen only
+    if (!sfxOn()) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      const t0 = actx.currentTime + 0.02;
+      const tone = (f, d, len, vol = 0.15, type = 'sine') => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.value = f; g.gain.setValueAtTime(0, t0 + d); g.gain.linearRampToValueAtTime(vol, t0 + d + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + len); o.connect(g).connect(actx.destination); o.start(t0 + d); o.stop(t0 + d + len + 0.05); };
+      if (kind === 'tick') tone(1250, 0, 0.08, 0.13, 'triangle');   // 5·4·3·2·1
+      else if (kind === 'drum') {   // one tap of the drum roll (the names slow down, so do the taps)
+        const b = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.07), actx.sampleRate), d = b.getChannelData(0);
+        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+        const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain(); src.buffer = b; f.type = 'bandpass'; f.frequency.value = 1700; f.Q.value = 0.8; g.gain.value = 0.32;
+        src.connect(f).connect(g).connect(actx.destination); src.start(t0);
+      }
+      else if (kind === 'fanfare') [[523, 0, 0.18], [659, 0.12, 0.18], [784, 0.24, 0.2], [1047, 0.38, 0.75]].forEach(([f, d, l]) => { tone(f, d, l, 0.12, 'triangle'); tone(f * 2, d, l * 0.6, 0.03); });
+      else if (kind === 'dingdong') { tone(784, 0, 1.0, 0.17); tone(659, 0.42, 1.3, 0.17); }
+    } catch (e) { /* no audio */ }
+  }
+  // the lesson's title picture (user: "lesson1에 대한 대문 이미지를 추가할거야. 수업시작을 누르면 시작하게"): over the board while the lesson
+  // waits at its very first step; its own buttons are in the picture — hotspots in image pixels, so they stay on them at any screen shape
+  const COVERS = { 1: { img: 'assets/covers/lesson-1.webp', w: 1024, h: 572, say: 'Unit 1, Lesson 1. M.', start: [268, 225, 153, 64, 20], speak: [434, 224, 65, 65, 16] } };   // 🔊 reads the title (user picked)
+  let coverOn = false, coverOutT = 0;
+  const atLessonStart = () => {   // where opening a lesson lands: Introduction · its first activity · step 1
+    const st = FP.state(), fl = FP.flow(), intro = Math.max(0, FP.sections().findIndex(x => x.name === 'Introduction'));
+    return !st.extra && st.sec === intro && st.step === 0 && !!fl.length && st.act === (fl.find(x => x.id === 'ls1') ? 'ls1' : fl[0].id);
+  };
+  function renderCover() {
+    const el = $('#cover'); if (!el) return;
+    const n = FP.lesson() && FP.lesson().n, cv = coverOn && COVERS[n];
+    if (!cv) {   // the lesson started: the picture lifts away
+      if (el.hidden || el.classList.contains('is-out')) return;
+      if (lowMotion()) { el.hidden = true; el.innerHTML = ''; return; }
+      el.classList.add('is-out'); clearTimeout(coverOutT);
+      coverOutT = setTimeout(() => { el.hidden = true; el.innerHTML = ''; el.classList.remove('is-out'); }, 420);
+      return;
+    }
+    clearTimeout(coverOutT); el.classList.remove('is-out');
+    if (!el.hidden && el.dataset.n === String(n)) return;
+    el.dataset.n = n;
+    const hot = (b, [x, y, w, h, r], label, id) => `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></clipPath><g class="b-cvbtn" data-b="${b}" role="button" tabindex="0" aria-label="${label}" style="transform-origin:${x + w / 2}px ${y + h / 2}px"><title>${label}</title><image href="${cv.img}" width="${cv.w}" height="${cv.h}" clip-path="url(#${id})"/><rect class="b-cvhit" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></g>`;   // a copy of the button's own pixels pops on a press
+    el.innerHTML = `<svg viewBox="0 0 ${cv.w} ${cv.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Lesson ${n}"><image href="${cv.img}" width="${cv.w}" height="${cv.h}"/>${STUDENT ? '' : hot('coverstart', cv.start, 'Start the lesson (→)', 'cvStart') + hot('coversay', cv.speak, 'Say the lesson title', 'cvSay')}</svg>`;
+    el.hidden = false;
+  }
+  // 8 · a real dice (user: "실제 3d 주사위를 돌리는 모션"): six white faces with pips; every 4 s it hops, tumbles and lands on another face —
+  // the face comes from the clock, so the tablets roll and land alike
+  const DICE_PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
+  const DICE_ROT = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] }, DICE_SEQ = [3, 6, 2, 5, 1, 4];
+  const diceT = (ty, x, y) => `translateY(${ty}px) rotateX(-20deg) rotateY(28deg) rotateX(${x}deg) rotateY(${y}deg)`;
+  const dice3d = () => `<span class="b-dice" aria-hidden="true"><span class="b-dicecube" style="transform:${diceT(0, 0, 0)}">${[1, 2, 3, 4, 5, 6].map(f => `<span class="b-dface f${f}">${DICE_PIPS[f].map(p => `<i style="grid-area:${Math.ceil(p / 3)}/${(p - 1) % 3 + 1}"></i>`).join('')}</span>`).join('')}</span></span>`;
+  function diceLoop(cube) {
+    if (!cube || lowMotion()) return;
+    const roll = () => {
+      if (!document.contains(cube)) return;
+      const f = DICE_SEQ[Math.floor(Date.now() / 4000) % 6], [fx, fy] = DICE_ROT[f], x0 = +cube.dataset.x || 0, y0 = +cube.dataset.y || 0;
+      const x1 = fx + 360 * (Math.floor((x0 - fx) / 360) + 2), y1 = fy + 360 * (Math.floor((y0 - fy) / 360) + 1);
+      cube.animate([{ transform: diceT(0, x0, y0) }, { transform: diceT(-90, (x0 + x1) / 2, (y0 + y1) / 2), offset: 0.42 }, { transform: diceT(0, x1, y1), offset: 0.78 }, { transform: diceT(-16, x1, y1), offset: 0.88 }, { transform: diceT(0, x1, y1) }], { duration: 1150, easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' });
+      cube.dataset.x = x1; cube.dataset.y = y1; cube.dataset.face = f;
+      setTimeout(roll, 4000 - (Date.now() % 4000));
+    };
+    setTimeout(roll, Math.max(500, 4000 - (Date.now() % 4000)));
+  }
+  const PSLABS = Array.from({ length: 12 }, (_, i) => `<i class="b-pslab" style="transform:translateZ(${-2.5 * (i + 1)}px);--m:${84 - i * 2.4}%"></i>`).join('');   // the Eyes-on-me block's thickness
+  function timeUpStars(f) {   // 5 · stars burst from the clock when time is up
+    const s = f.querySelector('.b-tstars'); if (!s || lowMotion()) return;
+    const C = ['#FFC53D', '#FF7A59', '#4CC38A', '#5AA9FF', '#C084FC', '#FF6FA8'];
+    s.innerHTML = Array.from({ length: 18 }, (_, i) => `<i style="--a:${i * 20 + (i % 2 ? 8 : -6)}deg;--d:${250 + (i % 3) * 55}px;--c:${C[i % C.length]};--dl:${(i % 4) * 0.04}s"><svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17.2l-5.9 3.2 1.3-6.5L2.5 9.4l6.6-.8z"/></svg></i>`).join('');
+  }
+  let rainT = 0;   // the reveal that already had its fanfare
 
   function addLayers() {
-    $('#stage').insertAdjacentHTML('beforeend', `<div class="b-media" id="media" hidden></div><div class="b-game" id="game" hidden></div><div class="b-scene" id="scene" hidden></div><div class="b-over"><button type="button" class="b-ctimer" id="ctimer" data-b="scene" data-v="timer" title="Timer"${STUDENT ? ' tabindex="-1"' : ''} hidden></button></div>`);
+    $('#stage').insertAdjacentHTML('beforeend', `<div class="b-media" id="media" hidden></div><div class="b-game" id="game" hidden></div><div class="b-cover" id="cover" hidden></div><div class="b-scene" id="scene" hidden></div><div class="b-over"><button type="button" class="b-ctimer" id="ctimer" data-b="scene" data-v="timer" title="Timer"${STUDENT ? ' tabindex="-1"' : ''} hidden></button></div>`);
   }
 
   const RR = 300, RC = 2 * Math.PI * RR;
   let pickIdx = -2;
   function renderScene() {
     const el = $('#scene'); if (!el) return;
+    if (el.dataset.scene === 'pause' && scene !== 'pause' && !el.hidden && el.firstElementChild && !lowMotion()) {   // 16 · leaving "Eyes on me": a wink, then the block spins away
+      const out = document.createElement('div'); out.className = 'b-scene b-sceneout'; out.appendChild(el.firstElementChild); el.after(out); setTimeout(() => out.remove(), 560);
+    }
     const show = scene === 'timer' || scene === 'pick' || scene === 'pause';   // every class tool stays inside the 16:10 frame
     el.hidden = !show; el.dataset.scene = show ? scene : '';
     if (!show) { el.innerHTML = ''; tick(); return; }
     if (scene === 'timer') {
-      // a simple alarm clock: bells, a white face with 12 dots, the coloured slice = time left, one hand
+      // a 3D alarm clock (user: "시계도 3d로"): the clock's outline is stacked in thin slices behind the dial, so it shows a real thickness
+      // when it turns; the hand and the little face float just above the dial
       const dot = i => { const a = i * Math.PI / 6, big = i % 3 === 0; return `<circle cx="${(300 + 166 * Math.sin(a)).toFixed(1)}" cy="${(330 - 166 * Math.cos(a)).toFixed(1)}" r="${big ? 8 : 5.5}"/>`; };
+      const SIL = '<circle cx="300" cy="330" r="226"/><path transform="translate(157 125) rotate(-35)" d="M-62 18A62 62 0 0 1 62 18Z"/><path transform="translate(443 125) rotate(35)" d="M-62 18A62 62 0 0 1 62 18Z"/><circle cx="300" cy="70" r="16"/><path class="ln" d="M300 106V82M200 503 137 539M400 503 463 539"/>';
+      const slabs = Array.from({ length: 16 }, (_, i) => `<svg class="b-tslab" viewBox="0 0 600 600" style="transform:translateZ(${-2.5 * (i + 1)}px);--m:${84 - i * 2}%">${SIL}</svg>`).join('');
       el.innerHTML = `<div class="b-fit"><div class="b-tm" id="tFull"${STUDENT ? '' : ' data-b="tgo" title="Tap to start or pause"'}>
-        <div class="b-tclock"><svg viewBox="0 0 600 600" aria-hidden="true">
-          <g class="rings"><path d="M92 156q-24-44 8-86"/><path d="M60 170q-34-62 10-118"/><path d="M508 156q24-44-8-86"/><path d="M540 170q34-62-10-118"/></g>
-          <g class="legs"><path d="M200 503 137 539"/><path d="M400 503 463 539"/></g>
-          <g class="bells"><path transform="translate(157 125) rotate(-35)" d="M-62 18A62 62 0 0 1 62 18Z"/><path transform="translate(443 125) rotate(35)" d="M-62 18A62 62 0 0 1 62 18Z"/></g>
-          <path class="stem" d="M300 106V82"/><circle class="cap" cx="300" cy="70" r="16"/>
-          <circle class="body" cx="300" cy="330" r="226"/><circle class="face" cx="300" cy="330" r="190"/>
-          <g class="dots">${Array.from({ length: 12 }, (_, i) => dot(i)).join('')}</g>
-          <path class="pie" id="tPie"/><line class="hand-halo" id="tHalo" x1="300" y1="330" x2="300" y2="170"/><line class="hand" id="tHand" x1="300" y1="330" x2="300" y2="170"/>
-          <circle class="hub" cx="300" cy="330" r="17"/><circle class="hub-dot" cx="300" cy="330" r="6"/>
-        </svg></div>
+        <div class="b-tclock" aria-hidden="true"><span class="b-tshadow"></span><div class="b-t3d"><div class="b-tbody">${slabs}
+          <svg class="b-tfront" viewBox="0 0 600 600">
+            <defs><radialGradient id="tBodyG" cx="36%" cy="28%" r="80%"><stop offset="0" class="g0"/><stop offset=".55" class="g1"/><stop offset="1" class="g2"/></radialGradient><radialGradient id="tFaceG" cx="42%" cy="36%" r="68%"><stop offset=".72" stop-color="#FFFFFF"/><stop offset="1" stop-color="#E4E0D9"/></radialGradient></defs>
+            <g class="rings"><path d="M92 156q-24-44 8-86"/><path d="M60 170q-34-62 10-118"/><path d="M508 156q24-44-8-86"/><path d="M540 170q34-62-10-118"/></g>
+            <g class="legs"><path d="M200 503 137 539"/><path d="M400 503 463 539"/></g>
+            <g class="bells"><path transform="translate(157 125) rotate(-35)" d="M-62 18A62 62 0 0 1 62 18Z"/><path transform="translate(443 125) rotate(35)" d="M-62 18A62 62 0 0 1 62 18Z"/></g>
+            <path class="stem" d="M300 106V82"/><circle class="cap" cx="300" cy="70" r="16"/>
+            <circle class="body" cx="300" cy="330" r="226"/><path class="gloss" d="M104.5 258.9A208 208 0 0 1 228.9 134.5"/><circle class="face" cx="300" cy="330" r="190"/>
+            <g class="dots">${Array.from({ length: 12 }, (_, i) => dot(i)).join('')}</g>
+            <path class="pie" id="tPie"/>
+          </svg>
+          <svg class="b-thand" viewBox="0 0 600 600"><line class="hand-halo" id="tHalo" x1="300" y1="330" x2="300" y2="170"/><line class="hand" id="tHand" x1="300" y1="330" x2="300" y2="170"/></svg>
+          <svg class="b-tfacep" viewBox="0 0 600 600"><g class="b-tface" id="tFace"><circle class="hd" cx="300" cy="330" r="60"/><g class="ey"><ellipse class="sc" cx="277" cy="326" rx="18" ry="24"/><circle class="pu" cx="277" cy="326" r="10"/><circle class="hl" cx="281" cy="321" r="3.4"/></g><g class="ey"><ellipse class="sc" cx="323" cy="326" rx="18" ry="24"/><circle class="pu" cx="323" cy="326" r="10"/><circle class="hl" cx="327" cy="321" r="3.4"/></g><path class="shut" d="M263 330q14 12 28 0M309 330q14 12 28 0"/></g></svg>
+        </div></div><span class="b-tzzz"><b>z</b><b>z</b><b>Z</b></span><span class="b-tstars"></span></div>
         <b class="b-tnum" id="tBig"></b>
       </div></div>`;
       dialLoop();
     }
     else if (scene === 'pick') { el.innerHTML = '<div class="b-fit"><div class="b-pick" id="pickView"></div></div>'; pickIdx = -2; drawPick(); }
-    else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Tablets · paused</span>' : ''}<span class="b-pausel b-attn" aria-hidden="true"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span><p lang="en">Eyes on me!</p></div></div>`; }
+    else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Tablets · paused</span>' : ''}<span class="b-pausel b-attn b-p3d" aria-hidden="true"><span class="b-pspin"><span class="b-pbody">${PSLABS}<span class="b-pface"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span></span></span></span><p lang="en">Eyes on me!</p><p class="b-spreply" lang="en">Eyes on you!</p></div></div>`; }
     tick();
   }
   // Pick a student: one card in the middle — "Who's next?", the names roll in the same spot, then the reveal
@@ -142,11 +221,20 @@
     const k = !PK.name ? -1 : spinning ? Math.min(PK.seq.length - 1, Math.floor((1 - Math.pow(1 - Math.max(0, t), 2.6)) * PK.seq.length)) : 1e6;
     if (k !== pickIdx) {
       pickIdx = k;
-      if (k === -1) v.innerHTML = `<div class="b-pkcard is-wait"${STUDENT ? '' : ' data-b="pickrand" title="Tap to pick a student"'}><span class="b-pkav">${ic('dices')}</span><b lang="en">Who’s next?</b><span class="b-pkcap is-quiet" aria-hidden="true"></span></div>`;
+      if (k === -1) {   // 8 · waiting: classmates float around like pond bubbles (12 at most — those still to go first), the dice rolls
+        const kids = [...roster.filter(n => !picked.has(n)), ...roster.filter(n => picked.has(n))].slice(0, 12), N = kids.length;
+        const bub = kids.map((n, i) => { const a = (120 + (i + 0.5) * 300 / N) * Math.PI / 180; return `<span class="b-pkbub" style="left:${(50 + 39 * Math.cos(a)).toFixed(1)}%;top:${(47 + 37 * Math.sin(a)).toFixed(1)}%;--c:${avColor(n)};--t:${(3 + (i % 4) * 0.45).toFixed(2)}s;--d:${(-i * 0.37).toFixed(2)}s;--sx:${i % 2 ? 6 : -6}px">${initial(n)}</span>`; }).join('');   // the bottom 60° stays clear (the name, the button)
+        v.innerHTML = `<div class="b-pkbubs" aria-hidden="true">${bub}</div><div class="b-pkcard is-wait"${STUDENT ? '' : ' data-b="pickrand" title="Tap to pick a student"'}><span class="b-pkav">${dice3d()}</span><b lang="en">Who’s next?</b><span class="b-pkcap is-quiet" aria-hidden="true"></span></div>`;
+        diceLoop(v.querySelector('.b-dicecube'));
+      }
       else {
         const n = spinning ? PK.seq[k] : PK.name;
         const burst = spinning ? '' : `<span class="b-pkburst" aria-hidden="true">${Array.from({ length: 13 }, (_, i) => `<i style="--a:${-120 + i * 20}deg;--d:${i % 2 ? 184 : 222}px;--c:${AV[(i * 3) % AV.length]}"></i>`).join('')}</span>`;   // an arc over the head, clear of the name
-        v.innerHTML = `<div class="b-pkcard ${spinning ? 'is-spin' : 'is-pick'}"${STUDENT || spinning ? '' : ' data-b="pickrand" title="Tap to pick again"'}><span class="b-pkhalo">${burst}<span class="b-pkav" style="--c:${avColor(n)}">${initial(n)}</span></span><b lang="en">${esc(n)}</b>${spinning ? '<span class="b-pkcap is-quiet">Picking…</span>' : `<span class="b-pkcap">${ic('sparkles')}It’s your turn!</span>`}</div>`;
+        const fresh = !spinning && PK.t0 !== rainT && Date.now() - PK.t0 < SPIN + 1200, c = avColor(n);   // 10 · the reveal right after the roll (a re-render stays calm)
+        if (fresh) rainT = PK.t0;
+        if (spinning) sfx('drum'); else if (fresh) sfx('fanfare');   // 9 · a drum tap per name; the fanfare on the reveal
+        const rain = fresh && !lowMotion() ? `<span class="b-pkrain" aria-hidden="true">${Array.from({ length: 28 }, (_, i) => `<i style="left:${(i * 37) % 100}%;--c:${i % 3 === 0 ? c : i % 3 === 1 ? `color-mix(in srgb, ${c} 50%, #fff)` : 'var(--acc)'};--r:${(i * 47) % 360}deg;--dl:${((i * 13) % 10) * 0.06}s;--du:${(1.6 + (i % 5) * 0.18).toFixed(2)}s"></i>`).join('')}</span>` : '';   // confetti in the child's colour
+        v.innerHTML = `${rain}<div class="b-pkcard ${spinning ? 'is-spin' : 'is-pick'}${fresh ? ' is-fresh' : ''}"${STUDENT || spinning ? '' : ' data-b="pickrand" title="Tap to pick again"'}><span class="b-pkhalo">${burst}<span class="b-pkav" style="--c:${avColor(n)}">${initial(n)}</span></span><b lang="en">${esc(n)}</b>${spinning ? '<span class="b-pkcap is-quiet">Picking…</span>' : `<span class="b-pkcap">${ic('sparkles')}It’s your turn!</span>`}</div>`;
         fitName(v.querySelector('.b-pkcard b'), 64);
       }
     }
@@ -158,9 +246,15 @@
     const f = $('#tFull');
     if (f) {
       const st = TM.done ? 'done' : TM.run ? 'run' : left < TM.dur ? 'paused' : 'ready';
-      $('#tBig').textContent = st === 'done' ? 'Time’s up!' : clock(left);
+      const cd = TM.run && left > 0 && left <= 5000 ? Math.ceil(left / 1000) : 0, big = $('#tBig');   // 4 · 5·4·3·2·1
+      big.textContent = st === 'done' ? 'Time’s up!' : cd ? String(cd) : clock(left);
+      if (TM.done && !f.classList.contains('is-done') && f._ran) timeUpStars(f);   // 5 · the moment time is up (not when the scene reopens later)
+      if (TM.run) f._ran = true;
       f.dataset.st = st;
-      f.classList.toggle('is-low', TM.run && left <= 10000); f.classList.toggle('is-done', TM.done);
+      f.dataset.zone = TM.done ? '' : left <= 10000 ? 'red' : TM.dur && left / TM.dur <= 0.5 ? 'amber' : 'green';   // 3 · traffic lights
+      f.classList.toggle('is-low', TM.run && left <= 10000); f.classList.toggle('is-done', TM.done); f.classList.toggle('is-cd', !!cd);
+      if (cd && f.dataset.cd !== String(cd)) { f.dataset.cd = cd; if (!lowMotion()) big.animate([{ transform: 'perspective(500px) rotateX(-80deg) scale(1.7)', opacity: 0 }, { transform: 'perspective(500px) rotateX(0deg) scale(1)', opacity: 1, offset: 0.6 }, { transform: 'perspective(500px) rotateX(0deg) scale(1)', opacity: 1 }], { duration: 620, easing: 'cubic-bezier(.2,1.3,.4,1)' }); sfx('tick'); }
+      else if (!cd) delete f.dataset.cd;
       drawDial(left);
     }
     const ct = $('#ctimer');
@@ -178,11 +272,20 @@
   }
   function drawDial(left) {   // the slice shrinks back to 12 o'clock and the hand rides its edge
     const pie = $('#tPie'), hand = $('#tHand'); if (!pie) return;
-    const p = TM.dur ? Math.max(0, Math.min(1, left / TM.dur)) : 0, a = p * 2 * Math.PI, R = 152, cx = 300, cy = 330;
+    let p = TM.dur ? Math.max(0, Math.min(1, left / TM.dur)) : 0;
+    const w = TM.windAt && TM.run && !lowMotion() ? (Date.now() - TM.windAt) / 700 : 1;
+    if (w >= 0 && w < 1) p *= 1 - Math.pow(1 - w, 3);   // 1 · a fresh start winds up from nothing
+    const f = $('#tFull'); if (f) f.classList.toggle('is-wind', w >= 0 && w < 1);
+    const a = p * 2 * Math.PI, R = 152, cx = 300, cy = 330;
     const x = (cx - R * Math.sin(a)).toFixed(2), y = (cy - R * Math.cos(a)).toFixed(2);
     pie.setAttribute('d', p >= 0.9995 ? `M${cx} ${cy - R}a${R} ${R} 0 1 0 0.01 0Z` : p <= 0 ? '' : `M${cx} ${cy}L${x} ${y}A${R} ${R} 0 ${p > 0.5 ? 1 : 0} 1 ${cx} ${cy - R}Z`);
     const hx = (cx - 160 * Math.sin(a)).toFixed(2), hy = (cy - 160 * Math.cos(a)).toFixed(2), halo = $('#tHalo');
     hand.setAttribute('x2', hx); hand.setAttribute('y2', hy); if (halo) { halo.setAttribute('x2', hx); halo.setAttribute('y2', hy); }
+    const face = $('#tFace');   // 7 · the eyes follow the hand; time's up: they look up at the bells
+    if (face) {
+      const ang = Math.atan2(+hy - cy, +hx - cx), dx = TM.done ? 0 : 6 * Math.cos(ang), dy = TM.done ? -9 : 8 * Math.sin(ang);
+      face.querySelectorAll('.ey').forEach((g, i) => { const ex = i ? 323 : 277, pu = g.querySelector('.pu'), hl = g.querySelector('.hl'); pu.setAttribute('cx', (ex + dx).toFixed(1)); pu.setAttribute('cy', (326 + dy).toFixed(1)); hl.setAttribute('cx', (ex + dx + 4).toFixed(1)); hl.setAttribute('cy', (321 + dy).toFixed(1)); });
+    }
   }
   function dialLoop() {   // the slice and the hand move smoothly while the timer runs on screen
     if (!$('#tFull')) return;
@@ -191,6 +294,7 @@
   }
   let actx = null;
   function chime() {   // three soft rising tones when the timer ends (teacher window only: it always has a user gesture)
+    if (!sfxOn()) return;   // Display › Sound effects: Off
     try {
       actx = actx || new (window.AudioContext || window.webkitAudioContext)();
       const t0 = actx.currentTime + 0.03;
@@ -410,6 +514,7 @@
       const redraw = scene !== m.scene || PK.t0 !== pk.t0 || PK.name !== pk.name || JSON.stringify([rs, pd]) !== JSON.stringify([roster, [...picked]]);
       if (Array.isArray(rs)) roster = rs; if (Array.isArray(pd)) picked = new Set(pd);
       scene = m.scene; Object.assign(TM, m.timer); Object.assign(PK, pk); game = m.game;
+      coverOn = !!m.cover; renderCover();
       if (m.media) Object.assign(MD, m.media);
       if (redraw) renderScene();
       renderGame(); renderMedia(); tick();
@@ -502,6 +607,7 @@
     if (v !== 'lesson') pauseMedia();
     if (v === 'pick' && scene !== 'pick' && Date.now() - PK.t0 > 1500) { PK.name = ''; PK.seq = null; }   // a fresh "Who's next?" board
     scene = v;
+    if (v === 'pause') sfx('dingdong');   // 13 · the attention signal
     renderScenes(); renderScene(); renderDock(); broadcast(); if (dialOpen) { renderLayer(); placeFab(); renderFab(); }   // the layer follows the board (keys, the tablet preview)
   }
   const coreGuide = FP.guide;   // Meaning First › Games: what to say and do
@@ -919,10 +1025,10 @@
   /* ---------- timer actions ---------- */
   function timerChanged() { renderDock(); tick(); broadcast(); if (dialOpen && scene === 'timer') renderLayer(); }
   function timerAct(a, v) {
-    if (a === 'tset') { TM.dur = TM.left = v; TM.done = false; TM.run = true; TM.endAt = Date.now() + v; }
+    if (a === 'tset') { TM.dur = TM.left = v; TM.done = false; TM.run = true; TM.endAt = Date.now() + v; TM.windAt = Date.now(); }   // 1 · a fresh start winds up
     if (a === 'tgo') {
       if (TM.run) { TM.left = tLeft(); TM.run = false; }
-      else { if (TM.done || TM.left <= 0) TM.left = TM.dur; TM.done = false; TM.run = true; TM.endAt = Date.now() + TM.left; }
+      else { const full = TM.done || TM.left <= 0 || TM.left >= TM.dur; if (TM.done || TM.left <= 0) TM.left = TM.dur; TM.done = false; TM.run = true; TM.endAt = Date.now() + TM.left; if (full) TM.windAt = Date.now(); }   // (a resume does not wind up)
     }
     if (a === 'tadd') { const l = Math.max(0, tLeft() + v); TM.left = l; TM.dur = Math.max(TM.dur, l); TM.done = false; if (TM.run) TM.endAt = Date.now() + l; }
     if (a === 'treset') { TM.left = TM.dur; TM.run = false; TM.done = false; }
@@ -1065,6 +1171,7 @@
       <section class="b-dsec"><h4>${CLASSROOM() ? 'Teacher guide' : 'Controls'}</h4><div class="b-opts">${LAYOUT.controls.map(([v, l]) => opt('controls', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>Teacher notes</h4><div class="b-opts">${LAYOUT.notes.map(([v, l]) => opt('notes', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>Color</h4><div class="b-opts b-opts--color">${THEMES.map(col).join('')}</div></section>
+      ${CLASSROOM() ? `<section class="b-dsec"><h4>Sound effects</h4><div class="b-opts b-opts--sfx">${[[true, 'On', 'volume-2'], [false, 'Off', 'volume-x']].map(([v, l, i]) => `<button type="button" class="b-opt b-opt--sfx" data-b="sfx" data-v="${v ? 'on' : 'off'}" aria-pressed="${(get('pondc-sfx', true) !== false) === v}">${ic(i)}<b>${l}</b></button>`).join('')}</div></section>` : ''}
       ${CLASSROOM() ? `<section class="b-dsec"><h4>Button</h4><button type="button" class="b-sbtn b-dreset" data-b="posreset" title="The one button back to the middle of the bottom edge" ${pos.fab ? '' : 'disabled'}>${ic('rotate-ccw')}Reset position</button></section>` : ''}`;
   }
   function refreshDisplay() { if ($('#displayPop').matches(':popover-open')) renderDisplay(); }
@@ -1074,7 +1181,7 @@
   function broadcast() {
     if (!CH || !FP.lesson()) return;
     const s = FP.state();
-    CH.postMessage({ type: 'state', lesson: FP.lesson().n, sec: s.sec, act: s.act, step: s.step, extra: s.extra, theme: root.dataset.theme, scene, timer: { dur: TM.dur, left: tLeft(), endAt: TM.endAt, run: TM.run, done: TM.done }, pick: { name: PK.name, seq: PK.seq, t0: PK.t0, roster, picked: [...picked] }, game, media: { key: MD.key, idx: MD.idx, playing: MD.playing, pos: mPos(), at: Date.now() }, ink: FP.ink.export() });
+    CH.postMessage({ type: 'state', lesson: FP.lesson().n, sec: s.sec, act: s.act, step: s.step, extra: s.extra, theme: root.dataset.theme, scene, cover: coverOn, timer: { dur: TM.dur, left: tLeft(), endAt: TM.endAt, run: TM.run, done: TM.done, windAt: TM.windAt }, pick: { name: PK.name, seq: PK.seq, t0: PK.t0, roster, picked: [...picked] }, game, media: { key: MD.key, idx: MD.idx, playing: MD.playing, pos: mPos(), at: Date.now() }, ink: FP.ink.export() });
   }
   function broadcastInk() { if (inkRaf) return; inkRaf = requestAnimationFrame(() => { inkRaf = 0; broadcast(); }); }
   function setLive(on) {
@@ -1137,8 +1244,11 @@
     switch (a) {
       case 'go': FP.go(v, 0); break;
       case 'step': FP.setStep(+v); break;
-      case 'next': FP.next(); break;
+      case 'next': if (coverOn) startLesson(); else FP.next(); break;   // on the cover: › starts the lesson at its first step
       case 'prev': FP.prev(); break;
+      case 'coverstart': startLesson(); break;   // the picture's 수업 시작
+      case 'coversay': { const cv = COVERS[FP.lesson().n]; if (cv) FP.speak(cv.say); break; }   // the picture's 🔊: the title in English
+      case 'sfx': put('pondc-sfx', v === 'on'); renderDisplay(); if (v === 'on') sfx('tick'); break;
       case 'close': FP.closeExtra(); break;
       case 'tool': FP.ink.set({ tool: v }); break;
       case 'color': FP.ink.set({ color: v }); break;
@@ -1193,6 +1303,15 @@
     const a = e.target.closest && e.target.closest('.b-fabside'); if (!a || !a.disabled || RM()) return;
     a.classList.remove('is-nope'); void a.offsetWidth; a.classList.add('is-nope');
   }, true);
+  function startLesson() { if (!coverOn) return; coverOn = false; renderCover(); broadcast(); }
+  addEventListener('keydown', e => {   // the cover: → / Space / PageDown (clickers) start the lesson at its first step — no step skipped; ← / PageUp wait; Enter / Space press a picture button
+    if (!coverOn || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+    const hot = e.target.closest && e.target.closest('.b-cvbtn');
+    if (hot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hot.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && tag !== 'button' && tag !== 'a')) { e.preventDefault(); e.stopPropagation(); startLesson(); return; }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); e.stopPropagation(); }
+  }, true);
   $('#gdim').addEventListener('click', () => { if (notesOpen || flowOpen) { notesOpen = flowOpen = false; renderFlow(); renderNotes(); renderDock(); } setGuide(false); });   // the guide's sheets go with it
   $('#fabBtn').addEventListener('click', () => {   // classroom: the one button opens Menu · Guide · Pen, or closes what is open
     if (!CLASSROOM()) { setPal(!palOpen); return; }
@@ -1223,6 +1342,8 @@
   $('#rosterPop').addEventListener('toggle', e => { if (e.newState === 'open') { const tx = $('#rosterTx'); if (tx) tx.focus(); } });
 
   FP.on(e => {
+    if (e.type === 'lesson') { coverOn = !!COVERS[FP.lesson().n] && atLessonStart(); renderCover(); }   // opening a lesson = its title picture
+    if (e.type === 'nav' && coverOn && !atLessonStart()) { coverOn = false; renderCover(); }   // moved on (lesson map, a step chip …) = started
     if ((e.type === 'lesson' || e.type === 'nav') && addGamesStep()) { FP.render(); renderDock(); }
     if (e.type === 'lesson') { refreshGames(); renderTop(); }
     if (e.type === 'nav') { renderCrumb(); renderActs(); renderMedia(); renderDock(); renderFlow(); renderNotes(); renderGame(); broadcast(); renderSides(); if (dialOpen) { renderLayer(); requestAnimationFrame(placeFab); } }
@@ -1257,7 +1378,7 @@
   setInterval(tick, 250);
 
   FP.mount($('#stage'), { storageKey: 'fprk-bc', keepAwake: true, fresh: qs.has('fresh'), lesson: +qs.get('lesson') || 1, act: qs.get('act') || 'ls1', design: DESIGN });
-  addLayers(); refreshGames(); if (addGamesStep()) FP.render();
+  addLayers(); coverOn = !!COVERS[FP.lesson().n] && atLessonStart(); renderCover(); refreshGames(); if (addGamesStep()) FP.render();   // a fresh class: the title picture first
   renderScenes(); renderActs(); renderFab(); renderShareBtn(); renderMedia(); renderDock(); renderGame(); renderSides();
   new ResizeObserver(() => { root.style.setProperty('--guide-h', ($('#dock').offsetHeight || 0) + 'px'); placeFab(); }).observe($('#dock'));
   $('#stagewrap').addEventListener('click', e => { if ((menuOpen || dialOpen) && !e.target.closest('.b-fab, .b-layer')) { setMenu(false); setDial(false); e.stopPropagation(); e.preventDefault(); } }, true);   // a tap on the board closes the menu / Menu · Guide · Pen first

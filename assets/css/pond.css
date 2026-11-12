@@ -1081,3 +1081,131 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 /* 12 · a theme change cross-fades ("12번") */
 :root.is-themefade::view-transition-old(root),:root.is-themefade::view-transition-new(root){animation-duration:.3s}
 @media (prefers-reduced-motion:reduce){.b-layer .b-card.is-on.is-new,.b-rchip.is-on.is-new,.b-opt[aria-pressed="true"].is-new,.b-layer .b-xi.is-on.is-new::after,.b-fabside.is-nope{animation:none}:root.is-moving .b-fabbtn{transform:none}}
+
+/* ---------- the lesson's title picture (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작") ---------- */
+.b-cover{position:absolute;inset:0;z-index:15;background:#CFE9F8;animation:b-fade .35s both}   /* over the board (media / games 10), under the class tools (20) */
+.b-cover[hidden]{display:none}
+.b-cover svg{display:block;width:100%;height:100%}
+.b-cvbtn{cursor:pointer;outline:none;transform-box:view-box;transition:transform .12s ease-out,filter .12s}
+.b-cvhit{fill:transparent}
+@media (hover:hover){.b-cvbtn:hover{transform:scale(1.04);filter:drop-shadow(0 6px 10px rgba(20,40,80,.28))}}
+.b-cvbtn:active{transform:scale(1.08);filter:drop-shadow(0 10px 16px rgba(20,40,80,.32))}   /* the button's own pixels pop (a copy over the picture) */
+.b-cvbtn:focus-visible .b-cvhit{stroke:#FFFFFF;stroke-width:5}
+.b-cvbtn[data-b="coverstart"]{animation:b-cvhello 4s ease-in-out .8s infinite}   /* a soft "tap me" */
+@keyframes b-cvhello{0%,72%,100%{transform:none}80%{transform:scale(1.09)}88%{transform:scale(.98)}}
+.b-cover.is-out{animation:b-cvout .42s cubic-bezier(.4,0,.2,1) both;pointer-events:none}
+@keyframes b-cvout{to{opacity:0;transform:scale(1.06)}}
+/* ---------- Timer: a 3D alarm clock (user: "시계도 3d로") ---------- */
+.b-tclock{position:relative;perspective:1500px}
+.b-t3d,.b-tbody{position:absolute;inset:0;transform-style:preserve-3d}
+.b-t3d{transform:rotateX(8deg) rotateY(-16deg);transition:transform .7s cubic-bezier(.3,1.3,.5,1)}   /* a three-quarter view: the side shows */
+.b-t3d svg{position:absolute;inset:0}
+.b-tslab{fill:color-mix(in srgb,var(--tm) var(--m),#000)}   /* the clock's thickness: its outline in 16 thin slices */
+.b-tslab .ln{fill:none;stroke:color-mix(in srgb,var(--tm) var(--m),#000);stroke-width:26;stroke-linecap:round}
+.b-t3d .body,.b-t3d .bells path,.b-t3d .cap{fill:url(#tBodyG)}
+.b-t3d .g0{stop-color:color-mix(in srgb,var(--tm) 76%,#fff)}
+.b-t3d .g1{stop-color:var(--tm)}
+.b-t3d .g2{stop-color:color-mix(in srgb,var(--tm) 84%,#000)}
+.b-t3d .body{filter:none}
+.b-t3d .face{fill:url(#tFaceG)}
+.b-t3d .gloss{fill:none;stroke:#FFFFFF;stroke-width:11;stroke-linecap:round;opacity:.42}
+.b-thand{transform:translateZ(6px)}   /* the hand floats over the dial */
+.b-tfacep{transform:translateZ(12px)}
+.b-tshadow{position:absolute;left:21%;right:21%;top:86%;height:9%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.30),rgba(0,0,0,0))}
+.b-tm[data-st="run"] .b-tbody{animation:b-tock 2s ease-in-out infinite}   /* 2 · tick-tock: it rocks and turns, side to side */
+@keyframes b-tock{0%,100%{transform:none}25%{transform:rotateY(13deg) rotateZ(2.5deg)}75%{transform:rotateY(-13deg) rotateZ(-2.5deg)}}
+.b-tm.is-wind .b-tbody{animation:b-wind3d .7s cubic-bezier(.25,1.2,.4,1)}   /* 1 · wind-up: a hop and a twist */
+@keyframes b-wind3d{0%{transform:rotateY(-42deg) scale(.92)}38%{transform:translateY(-34px) rotateY(20deg) scale(1.05)}72%{transform:rotateY(-6deg) scale(.985)}100%{transform:none}}
+.b-tm.is-wind .b-tshadow{animation:b-shadowhop .7s cubic-bezier(.25,1.2,.4,1)}
+@keyframes b-shadowhop{38%{transform:scale(.78);opacity:.6}}
+.b-tm[data-st="paused"] .b-t3d{transform:rotateX(18deg) rotateY(-10deg) rotateZ(-7deg)}   /* 6 · it dozes: leans back */
+.b-tm[data-st="paused"] .b-tbody{animation:b-doze 3.4s ease-in-out infinite}
+@keyframes b-doze{50%{transform:rotateX(6deg) translateY(5px)}}
+.b-tm.is-done .b-t3d svg{animation:none}
+.b-tm.is-done .b-tbody{animation:b-ring3d .42s ease-in-out 5}   /* 5 · it rings: the whole clock jiggles in 3D */
+@keyframes b-ring3d{0%,100%{transform:none}25%{transform:rotateZ(-7deg) rotateY(12deg)}75%{transform:rotateZ(7deg) rotateY(-12deg)}}
+.b-tm[data-zone="green"]{--tpie:#22A55B}   /* 3 · traffic lights */
+.b-tm[data-zone="amber"]{--tpie:#F2A20C}
+.b-tm[data-zone="red"]{--tpie:#F04A4A}
+.b-tm.is-cd .b-tnum{color:var(--sc-low);animation:none}   /* 4 · 5·4·3·2·1 (each digit flips in) */
+.b-tm.is-done .b-tnum{animation:b-upbounce .8s cubic-bezier(.2,1.6,.4,1) both}   /* 5 · "Time's up!" bounces in */
+@keyframes b-upbounce{0%{transform:scale(.5)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
+.b-tstars{position:absolute;left:50%;top:55%;width:0;height:0;pointer-events:none}
+.b-tstars i{position:absolute;left:-17px;top:-17px;width:34px;height:34px;color:var(--c);opacity:0;animation:b-starfly 1.3s cubic-bezier(.15,.9,.3,1) var(--dl) both}
+.b-tstars svg{display:block;width:100%;height:100%;fill:currentColor}
+@keyframes b-starfly{0%{transform:rotate(var(--a)) translateY(0) scale(.2);opacity:1}70%{opacity:1}100%{transform:rotate(var(--a)) translateY(calc(var(--d) * -1)) rotate(200deg) scale(1);opacity:0}}
+.b-tface .hd{fill:url(#tBodyG);stroke:#FFFFFF;stroke-width:6}   /* 7 · a little face on the hub */
+.b-tface .sc{fill:#FFFFFF;stroke:#1A1712;stroke-width:4}
+.b-tface .pu{fill:#1A1712}
+.b-tface .hl{fill:#FFFFFF}
+.b-tface .ey{transform-box:fill-box;transform-origin:center;animation:b-blink 3.6s ease-in-out infinite}
+.b-tface .shut{display:none;fill:none;stroke:#1A1712;stroke-width:6;stroke-linecap:round}
+.b-tm[data-st="paused"] .b-tface .ey{display:none}   /* 6 · paused = asleep */
+.b-tm[data-st="paused"] .b-tface .shut{display:block}
+.b-tzzz{position:absolute;left:86%;top:20%;width:120px;height:160px;display:none;pointer-events:none}
+.b-tm[data-st="paused"] .b-tzzz{display:block}
+.b-tzzz b{position:absolute;left:0;bottom:0;font:700 44px/1 var(--kid);color:var(--sc-tx);opacity:0;animation:b-zzz 2.4s ease-out infinite}
+.b-tzzz b:nth-child(2){font-size:56px;animation-delay:.8s}
+.b-tzzz b:nth-child(3){font-size:70px;animation-delay:1.6s}
+@keyframes b-zzz{0%{opacity:0;transform:translate(0,0) rotate(-8deg)}20%{opacity:1}100%{opacity:0;transform:translate(46px,-120px) rotate(8deg)}}
+/* ---------- Pick for 5-year-olds ---------- */
+.b-pkbubs{position:absolute;inset:0;pointer-events:none}   /* 8 · classmates float like pond bubbles */
+.b-pkbub{position:absolute;display:grid;place-items:center;width:66px;height:66px;margin:-33px 0 0 -33px;border-radius:50%;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.55) 0 9%,rgba(255,255,255,0) 26%),var(--c);color:#FFFFFF;font:700 32px/1 var(--kid);box-shadow:inset 0 -6px 12px rgba(0,0,0,.18),0 12px 22px -12px rgba(0,0,0,.6);animation:b-float var(--t,3.4s) ease-in-out var(--d,0s) infinite alternate}
+@keyframes b-float{from{transform:translate(0,-9px)}to{transform:translate(var(--sx,5px),9px) scale(1.04)}}
+.b-pkcard.is-wait .b-pkav{background:none;box-shadow:none}   /* 8 · a real dice instead of the dice icon */
+.b-pkcard.is-wait .b-pkav::after{content:"";position:absolute;left:27%;right:27%;bottom:8%;height:11%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.34),rgba(0,0,0,0))}
+.b-dice{position:relative;z-index:1;display:grid;place-items:center;width:190px;height:190px;perspective:760px}
+.b-dicecube{position:relative;width:136px;height:136px;transform-style:preserve-3d}
+.b-dface{position:absolute;inset:0;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);padding:17px;border-radius:26px;background:radial-gradient(circle at 34% 28%,#FFFFFF 0 46%,#ECE8E1 100%);box-shadow:inset 0 0 0 3px rgba(26,23,18,.12),inset 0 -10px 18px rgba(0,0,0,.08);backface-visibility:hidden}
+.b-dface i{width:24px;height:24px;margin:auto;border-radius:50%;background:#1A1712;box-shadow:inset 0 3px 4px rgba(0,0,0,.45)}
+.b-dface.f1 i{width:34px;height:34px;background:#E5484D}   /* the one: a big red pip, like a real dice */
+.b-dface.f1{transform:translateZ(68px)}
+.b-dface.f6{transform:rotateY(180deg) translateZ(68px)}
+.b-dface.f2{transform:rotateY(90deg) translateZ(68px)}
+.b-dface.f5{transform:rotateY(-90deg) translateZ(68px)}
+.b-dface.f3{transform:rotateX(90deg) translateZ(68px)}
+.b-dface.f4{transform:rotateX(-90deg) translateZ(68px)}
+.b-pkcard.is-spin b{animation:b-slot .16s ease-out}   /* 9 · the names roll like a slot machine */
+@keyframes b-slot{from{transform:translateY(-38%)}}
+.b-pkcard.is-pick.is-fresh .b-pkav{animation:b-squash .85s cubic-bezier(.2,1.4,.4,1) .05s both}   /* 10 · stretch & squash */
+@keyframes b-squash{0%{transform:scale(.3)}30%{transform:scale(1.22,.82)}50%{transform:scale(.9,1.12)}70%{transform:scale(1.05,.96)}100%{transform:scale(1)}}
+.b-pkcard.is-fresh .b-pkcap{animation:b-capin .5s cubic-bezier(.2,1.5,.4,1) .45s both}
+@keyframes b-capin{from{transform:translateY(20px) scale(.4)}}
+.b-pkrain{position:absolute;inset:0;overflow:hidden;pointer-events:none}   /* 10 · confetti in the child's colour */
+.b-pkrain i{position:absolute;top:-40px;width:14px;height:22px;border-radius:3px;background:var(--c);animation:b-rain var(--du) cubic-bezier(.3,.1,.6,1) var(--dl) both}
+@keyframes b-rain{from{transform:translateY(0) rotate(var(--r))}to{transform:translateY(940px) rotate(calc(var(--r) + 540deg))}}
+/* ---------- Eyes on me: a 3D block (user: "pause도 3d로") ---------- */
+.b-pausel.b-p3d{background:none;border-radius:0;animation:none;perspective:900px}
+.b-pspin,.b-pbody{position:relative;display:block;width:100%;height:100%;transform-style:preserve-3d}
+.b-pslab,.b-pface{position:absolute;inset:0;border-radius:54px}
+.b-pslab{background:color-mix(in srgb,var(--acc) var(--m),#000)}   /* the block's thickness: 12 thin slices */
+.b-pface{display:grid;place-items:center;background:radial-gradient(120% 90% at 30% 16%,rgba(255,255,255,.40),rgba(255,255,255,0) 46%),var(--acc);box-shadow:inset 0 -16px 26px rgba(0,0,0,.14)}
+.b-spause .b-pspin{animation:b-pop3d .9s cubic-bezier(.2,1.15,.35,1) both}   /* 13 · it swoops in */
+@keyframes b-pop3d{0%{transform:translateZ(-760px) rotateX(28deg) rotateY(-55deg) scale(.4)}68%{transform:translateZ(40px) rotateX(-4deg) rotateY(12deg) scale(1.04)}100%{transform:none}}
+.b-spause .b-pbody{animation:b-look3d 7s ease-in-out 1s infinite}   /* 14 · it turns its head as it looks around */
+@keyframes b-look3d{0%,4%{transform:none}10%,17%{transform:rotateY(-26deg) rotateX(4deg)}25%,32%{transform:rotateY(26deg) rotateX(4deg)}38%,100%{transform:none}}
+.b-spause .b-attn .pu,.b-spause .b-attn .hl{animation:b-look 7s ease-in-out 1s infinite}
+@keyframes b-look{0%,4%{transform:none}10%,17%{transform:translateX(-13px)}25%,32%{transform:translateX(13px)}38%,100%{transform:none}}
+.b-spause .b-attn .eye{animation:b-blink2 7s ease-in-out 1s infinite}
+@keyframes b-blink2{0%,40%,46%,84%,90%,100%{transform:scaleY(1)}43%,87%{transform:scaleY(.08)}}
+.b-spause .b-spreply{display:inline-flex;align-items:center;height:66px;margin:-6px 0 0;padding:0 32px;border-radius:999px;background:var(--acc);font:700 40px/1 var(--kid);animation:b-replyin .5s cubic-bezier(.2,1.4,.4,1) 1.5s both}   /* 15 · the class answers */
+:root .b-spause p.b-spreply{color:var(--acc-ink)}
+@keyframes b-replyin{from{opacity:0;transform:translateY(18px) scale(.9)}}
+.b-sceneout{pointer-events:none}   /* 16 · leaving: a wink, then the block spins away */
+.b-sceneout .b-fit{background:none}
+.b-sceneout .b-spause{animation:b-fadeout .45s ease .12s both}
+.b-sceneout .b-pspin{animation:b-spinout .5s cubic-bezier(.5,0,.75,0) both}
+@keyframes b-spinout{25%{transform:scale(1.06)}100%{transform:translateZ(-520px) rotateY(70deg) scale(.3)}}
+.b-sceneout .b-attn .eye:first-of-type{animation:b-wink .3s ease both}
+@keyframes b-wink{50%,100%{transform:scaleY(.1)}}
+/* ---------- 17 · Display › Sound effects ---------- */
+.b-opts--sfx{grid-template-columns:repeat(2,minmax(0,1fr))}
+.b-opt--sfx{grid-auto-flow:column;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:8px 12px}   /* icon + word on one line: the row stays as low as the Button row */
+.b-opt--sfx .i{width:24px;height:24px}
+@media (prefers-reduced-motion:reduce){
+  .b-cover,.b-cvbtn[data-b="coverstart"],.b-tm[data-st="run"] .b-tbody,.b-tm.is-wind .b-tbody,.b-tm.is-wind .b-tshadow,.b-tm[data-st="paused"] .b-tbody,.b-tm.is-done .b-tbody,.b-tstars i,.b-tface .ey,.b-pkbub,.b-pkcard.is-spin b,.b-pkcard.is-pick.is-fresh .b-pkav,.b-pkcard.is-fresh .b-pkcap,.b-pkrain i,.b-spause .b-pspin,.b-spause .b-pbody,.b-spause .b-attn .pu,.b-spause .b-attn .hl,.b-spause .b-attn .eye,.b-spause .b-spreply,.b-tm.is-done .b-tnum{animation:none}
+  .b-t3d{transition:none}
+  .b-tzzz b{animation:none;opacity:.85}
+  .b-tzzz b:nth-child(2){transform:translate(22px,-52px)}
+  .b-tzzz b:nth-child(3){transform:translate(44px,-108px)}
+}
