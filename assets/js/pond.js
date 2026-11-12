@@ -94,7 +94,7 @@
   let live = false;
   // where the student screen goes: the classroom screen (a second window), student tablets (needs the class server — preview) or both
   let shareTo = 'none';
-  const hasScreen = () => shareTo === 'screen' || shareTo === 'both', hasTablets = () => shareTo === 'tablets' || shareTo === 'both';
+  const hasScreen = () => shareTo === 'mirror', hasTablets = () => shareTo !== 'none';   // share = the students' tablets: 'mirror' (same screen as this one) or 'solo' (on their own)
   const TCODE = String(1000 + Math.floor(Math.random() * 9000));   // class code placeholder until the class server exists
   const AV = ['#B85B1A', '#1F7AB6', '#1E8449', '#8E4BD6', '#CF3B3B', '#906C00', '#0D8098', '#C4387F', '#2D8355', '#C94C28'];   // white initials stay ≥ 4.5:1
   const avColor = n => { let h = 7; for (const ch of String(n)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV[h % AV.length]; };
@@ -131,7 +131,7 @@
       dialLoop();
     }
     else if (scene === 'pick') { el.innerHTML = '<div class="b-fit"><div class="b-pick" id="pickView"></div></div>'; pickIdx = -2; drawPick(); }
-    else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Classroom screen · paused</span>' : ''}<span class="b-pausel b-attn" aria-hidden="true"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span><p lang="en">Eyes on me!</p></div></div>`; }
+    else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Tablets · paused</span>' : ''}<span class="b-pausel b-attn" aria-hidden="true"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span><p lang="en">Eyes on me!</p></div></div>`; }
     tick();
   }
   // Pick a student: one card in the middle — "Who's next?", the names roll in the same spot, then the reveal
@@ -298,7 +298,7 @@
     if (mEl.dataset.src !== src) { mEl.dataset.src = src; mEl.src = src; seek = true; }
     const want = mPos(), dur = mEl.duration || DUR[src] || 0;
     if (mEl.readyState >= 1 && (seek || STUDENT) && Math.abs(mEl.currentTime - want) > (seek ? 0.05 : 0.45)) { try { mEl.currentTime = dur ? Math.min(want, dur - 0.05) : want; } catch (e) { /* not seekable yet */ } }
-    mEl.muted = STUDENT ? mPolicyMute : (live && hasScreen());   // sharing: the classroom screen plays the sound
+    mEl.muted = STUDENT ? true : false;   // this screen is the classroom screen: the class hears it here; mirrored tablets stay quiet
     const on = MD.playing && scene === 'lesson';
     if (on && mEl.paused) {
       const p = mEl.play();
@@ -307,7 +307,7 @@
       });
     } else if (!on && !mEl.paused) mEl.pause();
     el.classList.toggle('is-playing', on);
-    const note = el.querySelector('.b-mnote'); if (note) note.hidden = !(live && hasScreen());
+    const note = el.querySelector('.b-mnote'); if (note) note.hidden = true;
     paintMedia(); mediaIdle();
   }
   function paintMedia() {
@@ -383,7 +383,6 @@
     let acts;
     if (STUDENT) acts = game && game.where === 'here' ? `<p class="b-gstat">Playing on the teacher’s screen</p><div class="b-gacts"><button type="button" class="b-gbtn" data-b="gplay" data-v="screen">${ic('play')}Play on this screen</button></div>` : `<div class="b-gacts"><button type="button" class="b-gbtn b-gbtn--go b-gbtn--lg" data-b="gplay" data-v="screen">${ic('play')}Play</button></div>`;
     else if (game && game.where === 'screen') acts = `<p class="b-gstat"><i class="b-live" aria-hidden="true"></i>Playing on the classroom screen</p><div class="b-gacts"><button type="button" class="b-gbtn" data-b="gplay" data-v="here">${ic('monitor')}Play here instead</button><button type="button" class="b-gbtn" data-b="gstop">${ic('x')}Stop</button></div>`;
-    else if (live) acts = `<div class="b-gacts"><button type="button" class="b-gbtn b-gbtn--go b-gbtn--lg" data-b="gplay" data-v="screen">${ic('cast')}Play on classroom screen</button><button type="button" class="b-gbtn" data-b="gplay" data-v="here">${ic('play')}Play here</button></div>`;
     else acts = `<div class="b-gacts"><button type="button" class="b-gbtn b-gbtn--go b-gbtn--lg" data-b="gplay" data-v="here">${ic('play')}Play</button></div>`;
     el.innerHTML = `<div class="b-fit"><div class="b-gcover"><img src="assets/games/${g.poster}.webp" alt="" onerror="this.remove()"><div class="b-gshade"></div><div class="b-ginfo"><span class="b-gtag">${ic(g.icon || 'gamepad')}${esc(g.tag || 'Phonics game')} · Lesson ${FP.lesson().n}</span><h3 lang="en">${esc(it.label)}</h3><p lang="en">${esc(it.sub)} · ${esc(g.blurb)}</p>${acts}</div></div></div>`;
   }
@@ -470,7 +469,7 @@
   const SCENES = [['lesson', 'presentation', 'Lesson', 'Show the lesson'], ['timer', 'timer', 'Timer', 'Timer (T)'], ['pick', 'dices', 'Pick', 'Pick a student (P)'], ['pause', 'monitor-pause', 'Pause', 'Eyes on me (B)']];
   function renderScenes() {
     const el = $('#scenes'); if (!el || !FP.lesson()) return;
-    el.innerHTML = `<span class="b-scnl" title="${live ? 'Sharing to the classroom screen' : 'What students see'}">${live ? '<i class="b-live" aria-hidden="true"></i>' : ''}<span>Students see</span></span>${SCENES.map(([v, i, l, t]) => `<button type="button" data-b="scene" data-v="${v}" aria-pressed="${scene === v}" title="${t}">${ic(i)}<span>${l}</span></button>`).join('')}`;
+    el.innerHTML = `<span class="b-scnl" title="${live ? 'Sharing to student tablets' : 'What students see'}">${live ? '<i class="b-live" aria-hidden="true"></i>' : ''}<span>Students see</span></span>${SCENES.map(([v, i, l, t]) => `<button type="button" data-b="scene" data-v="${v}" aria-pressed="${scene === v}" title="${t}">${ic(i)}<span>${l}</span></button>`).join('')}`;
     fitTop();
   }
   // the Class activities select shows what is picked, like the other selects (no extra path in the top bar)
@@ -558,7 +557,7 @@
     const b = $('#fabBtn'), dial = CLASSROOM(), shut = palOpen || (dial && (dialOpen || menuOpen));   // classroom: the one button closes what is open
     b.classList.toggle('is-ink', k.on && !shut); b.classList.toggle('is-open', shut);
     b.setAttribute('aria-expanded', dial ? dialOpen || palOpen || menuOpen : palOpen); b.setAttribute('aria-label', dial ? 'Settings, quick tools and guide' : 'Board tools');
-    b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Settings · Quick · Guide · drawing is on (D) · drag to move' : 'Phonics POND — Settings · Quick · Guide · drag to move')
+    b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Guide · Quick · Settings · drawing is on (D) · drag to move' : 'Phonics POND — Guide · Quick · Settings · drag to move')
       : palOpen ? 'Hide board tools' : k.on ? 'Board tools — drawing is on (D)' : 'Board tools (D = pen)';
     const face = dial ? '<svg class="b-fabmark" viewBox="0 0 64 64" aria-hidden="true"><use href="#pond-mark"/></svg>' : ic(k.on ? tIcon : 'pen');   // classroom: our symbol on the one button (user: "메뉴 표시 대신에 우리 심볼아이콘")
     b.innerHTML = shut ? ic('x') : `${face}${k.on && cur !== 'er' ? `<i class="b-fabdot" style="--c:${k.color}"></i>` : ''}${k.count && !k.on && !dial ? `<i class="b-fabn">${k.count}</i>` : ''}`;
@@ -569,11 +568,11 @@
       else {
         const shareIc = shareTo !== 'none' ? (hasScreen() ? 'monitor' : 'tablet') : 'cast';
         const want = [   // [class, action, value, icon, label, on, tip, live dot, count]
-          ['b-dialitem', 'dset', '', 'settings', 'Settings', false, 'Settings — the template: guide position, notes, colour'],   // user: "menu 버튼은 설정으로"
+          ['b-dialitem', 'dguide', '', 'notebook-pen', 'Guide', guideOpen, 'Teacher guide — what to say and do (G)'],   // Guide · Quick · Settings (user: "셋팅과 가이드 메뉴 순서 바꿔줘")
           ['b-dialitem', 'dquick', '', 'zap', 'Quick', quickOpen, 'Quick — what students see, share, pen'],   // user: "pen버튼 자리에는 퀵 버튼으로"
-          ['b-dialitem', 'dguide', '', 'notebook-pen', 'Guide', guideOpen, 'Teacher guide — what to say and do (G)'],
+          ['b-dialitem', 'dset', '', 'settings', 'Settings', false, 'Settings — the template: guide position, notes, colour'],   // user: "menu 버튼은 설정으로"
           ...SCENES.map(([v, i, l, t]) => ['b-qitem', 'scene', v, i, l, scene === v, t]),   // what students see
-          ['b-qitem', 'qshare', '', shareIc, live ? 'Sharing' : 'Share', shareTo !== 'none', shareTo !== 'none' ? 'Sharing — the share settings (S)' : 'Share with students (S)', live],
+          ['b-qitem', 'qshare', '', shareIc, shareTo !== 'none' ? 'Sharing' : 'Share', shareTo !== 'none', shareTo !== 'none' ? 'Sharing — the share settings (S)' : 'Share with students (S)', live],
           ['b-qitem', 'dpen', '', 'pen', 'Pen', k.on, 'Pen — draw on the board, tools at hand (D)', false, k.count && !k.on ? k.count : 0]];
         const inner = w => `${ic(w[3])}<span>${w[4]}</span>${w[7] ? '<i class="b-live" aria-hidden="true"></i>' : ''}${w[8] ? `<i class="b-fabn">${w[8]}</i>` : ''}`;
         if (items.children.length !== want.length) items.innerHTML = want.map(w => `<button type="button" class="${w[0]}${w[5] ? ' is-on' : ''}" data-b="${w[1]}"${w[2] ? ` data-v="${w[2]}"` : ''} aria-pressed="${!!w[5]}" title="${w[6]}">${inner(w)}</button>`).join('');
@@ -790,7 +789,7 @@
       const it = FP.extraInfo(), gm = it.game ? it : null;
       left = `<div class="b-now"><div class="b-ring b-ring--icon">${ic(it.icon)}</div><div class="b-nowtx"><small>${esc(it.group)}${gm ? ` · Lesson ${FP.lesson().n}` : ''}</small><b>${esc(it.label)}</b><span lang="en">${esc(it.sub)}</span></div></div>`;
       const gmsg = !gm ? '' : game && game.where === 'here' ? `${esc(it.label)} is running on the board. Go back to the lesson when the round is over.` : game && game.where === 'screen' ? `${esc(it.label)} is running on the classroom screen.` : `Tap Play on the board to start ${esc(it.label)}.`;
-      mid = `<div class="b-say b-say--quiet"><p>${curMedia() ? `Tap ▶ on the board or press K to play${live && hasScreen() ? ' — the sound plays on the classroom screen' : ''}.` : gm ? gmsg : it.soon ? 'This activity is in production — the content area is ready for it.' : 'Run the activity, then go back to where you left the lesson.'}</p></div>`;
+      mid = `<div class="b-say b-say--quiet"><p>${curMedia() ? `Tap ▶ on the board or press K to play.` : gm ? gmsg : it.soon ? 'This activity is in production — the content area is ready for it.' : 'Run the activity, then go back to where you left the lesson.'}</p></div>`;
       right = `<div class="b-pn"><button type="button" class="b-next" data-b="close"><span><b>Back to lesson</b><small lang="en">${esc(cur.title)}</small></span>${ic('arrow-left')}</button></div>`;
     } else {
       const g = FP.guide(), c = g.cur || {}, nx = FP.peek(1), pv = FP.peek(-1), grp = FP.groups().find(x => x.id === cur.group) || {};
@@ -821,7 +820,7 @@
   }
   function dockPause() {
     const to = { lesson: 'the lesson', timer: 'the timer', pick: 'the student pick' }[resumeTo] || 'the lesson';
-    return `<div class="b-dockrow b-dockrow--tool"><div class="b-now"><div class="b-ring b-ring--icon">${ic('monitor-pause')}</div><div class="b-nowtx"><small>On the student screen</small><b>Eyes on me</b><span>${live ? 'The classroom screen is paused' : 'The student screen is paused'}</span></div></div>
+    return `<div class="b-dockrow b-dockrow--tool"><div class="b-now"><div class="b-ring b-ring--icon">${ic('monitor-pause')}</div><div class="b-nowtx"><small>On the student screen</small><b>Eyes on me</b><span>${live ? 'The tablets are paused' : 'The student screen is paused'}</span></div></div>
       <div class="b-say b-say--quiet"><p>${live ? 'Only the classroom screen is paused — your dashboard keeps working.' : 'Students see “Eyes on me!” in the frame — your notes and controls keep working.'}</p></div>
       <div class="b-dright"><div class="b-pn"><button type="button" class="b-next" data-b="scene" data-v="pause"><span><b>Resume</b><small>Back to ${to}</small></span>${ic('play')}</button></div></div></div>`;
   }
@@ -997,7 +996,7 @@
   function refreshDisplay() { if ($('#displayPop').matches(':popover-open')) renderDisplay(); }
 
   /* ---------- share with students ---------- */
-  let lastPing = 0, inkRaf = 0;
+  let lastPing = 0, inkRaf = 0, stopAt = 0;
   function broadcast() {
     if (!CH || !FP.lesson()) return;
     const s = FP.state();
@@ -1006,8 +1005,6 @@
   function broadcastInk() { if (inkRaf) return; inkRaf = requestAnimationFrame(() => { inkRaf = 0; broadcast(); }); }
   function setLive(on) {
     if (live === on) return; live = on;
-    if (on && !hasScreen()) shareTo = hasTablets() ? 'both' : 'screen';    // a student window said hello
-    if (!on && hasScreen()) shareTo = hasTablets() ? 'tablets' : 'none';   // …or went away
     if (!on && game && game.where === 'screen') game = null;
     renderShareBtn(); renderScenes(); renderGame(); renderScene(); renderDock(); syncMedia();
     fitTop(true);   // measure again now that the live dot sits in the top bar too
@@ -1015,7 +1012,11 @@
   }
   if (CH) CH.onmessage = ({ data: m }) => {
     if (!m) return;
-    if (m.type === 'hello' || m.type === 'ping') { const was = live; lastPing = Date.now(); setLive(true); if (m.type === 'hello' || !was) broadcast(); }
+    if (m.type === 'hello' || m.type === 'ping') {
+      if (Date.now() - stopAt < 3000) return;   // a preview told to stop may still ping while it closes
+      if (m.type === 'hello' && shareTo === 'none') shareTo = 'mirror';   // a tablet preview said hello: it shows this screen
+      const was = live; lastPing = Date.now(); setLive(true); if (m.type === 'hello' || !was) broadcast();
+    }
     if (m.type === 'bye') { lastPing = 0; setLive(false); }
     if (m.type === 'cmd') runCmd(m.a, m.v);
   };
@@ -1023,31 +1024,25 @@
   function renderShareBtn() {
     const b = $('#shareBtn'), on = shareTo !== 'none';
     b.classList.toggle('is-live', live); b.classList.toggle('is-on', on);
-    b.innerHTML = `${live ? '<i class="b-live" aria-hidden="true"></i>' : ''}${on ? (hasScreen() ? ic('monitor') : '') + (hasTablets() ? ic('tablet') : '') : ic('cast')}<span>${live ? 'Sharing' : 'Share'}</span>`;
-    const to = [hasScreen() && 'the classroom screen', hasTablets() && 'student tablets (preview)'].filter(Boolean).join(' and ');
+    b.innerHTML = `${live ? '<i class="b-live" aria-hidden="true"></i>' : ''}${on ? (hasScreen() ? ic('monitor') : '') + ic('tablet') : ic('cast')}<span>${on ? 'Sharing' : 'Share'}</span>`;
+    const to = hasScreen() ? 'student tablets — same screen' : 'student tablets — on their own';
     b.title = on ? `Sharing to ${to} (S)` : 'Share with students (S)'; b.setAttribute('aria-label', on ? `Sharing to ${to}` : 'Share with students');
     fitTop(); if (dialOpen) renderFab();
   }
   function openStudent() { const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('view', 'student'); window.open(u.href, 'pondc-student', 'popup,width=1280,height=800'); }
-  function stopScreen() { if (CH) CH.postMessage({ type: 'stop' }); lastPing = 0; setLive(false); }
+  function stopScreen() { if (CH) CH.postMessage({ type: 'stop' }); lastPing = 0; stopAt = Date.now(); setLive(false); }
   function setShareTo(v) {
-    const had = hasScreen(); shareTo = v;
-    if (hasScreen() && !live) openStudent();   // runs from a click, so the browser lets the window open
-    if (had && !hasScreen()) stopScreen();
+    shareTo = v;
+    if (!hasScreen() && live) stopScreen();   // the tablet preview only shows the same screen
     renderShareBtn(); if ($('#sharePop').matches(':popover-open')) renderShare();
   }
-  function renderShare() {
-    const scr = hasScreen(), tab = hasTablets();
-    const opt = (v, icons, label, tip) => `<button type="button" data-b="shareto" data-v="${v}" aria-pressed="${shareTo === v}" title="${tip}"><span class="b-stic">${icons}</span><span>${label}</span></button>`;
-    $('#sharePop').innerHTML = `<div class="b-pophead"><h3>Share with students</h3><p>Students see the 16:10 board only (1280 × 800) — never your notes or controls.</p></div>
-      <div class="b-sto" role="group" aria-label="Share to">${opt('screen', ic('monitor'), 'Classroom screen', 'A second screen or projector')}${opt('tablets', ic('tablet'), 'Student tablets', 'Each student’s tablet')}${opt('both', ic('monitor') + ic('tablet'), 'Both', 'The classroom screen and the tablets show the same screen')}</div>
-      <div class="b-scards">
-        <article class="b-scard${scr ? (live ? ' is-live' : ' is-on') : ' is-off'}"><span class="b-sicon">${ic('monitor')}</span><div class="b-stx"><b>Classroom screen</b><p>For a second screen or projector. It follows every step, your drawing, the timer, the student pick and the pause screen.</p>
-          ${scr ? `<div class="b-sact">${live ? `<span class="b-sstat"><i class="b-live" aria-hidden="true"></i>Connected</span><button type="button" class="b-sbtn" data-b="shareopen">${ic('external-link')}Bring to front</button>` : `<span class="b-sstat is-wait">Opening the student screen…</span><button type="button" class="b-sbtn" data-b="shareopen">${ic('external-link')}Open again</button>`}</div>` : ''}</div></article>
-        <article class="b-scard${tab ? ' is-on' : ' is-off'}"><span class="b-sicon">${ic('tablet')}</span><div class="b-stx"><b>Student tablets <em>Soon</em></b><p>Students join with the QR code or the class code and see the same 1280 × 800 screen.</p>
-          ${tab ? `<div class="b-scode"><span class="b-sqr">${ic('qr-code')}</span><div><small>Class code</small><b class="num">${TCODE}</b><span>0 joined · preview — tablets can join once the class server is ready</span></div></div>` : ''}</div></article>
-      </div>
-      ${shareTo !== 'none' ? `<div class="b-sfoot"><button type="button" class="b-sbtn b-sbtn--stop" data-b="sharestop">${ic('x')}Stop sharing</button></div>` : ''}`;
+  function renderShare() {   // two choices for the students' tablets (user: "두개 버튼만 있으면돼")
+    const opt = (v, icons, label, sub, tip) => `<button type="button" data-b="shareto" data-v="${v}" aria-pressed="${shareTo === v}" title="${tip}"><span class="b-stic">${icons}</span><b>${label}</b><small>${sub}</small></button>`;
+    const join = `<div class="b-scode"><span class="b-sqr">${ic('qr-code')}</span><div><small>Class code</small><b class="num">${TCODE}</b><span>0 joined · preview — tablets can join once the class server is ready</span></div></div>`;
+    $('#sharePop').innerHTML = `<div class="b-pophead"><h3>Share with students</h3><p>On the students’ tablets — never your notes or controls.</p></div>
+      <div class="b-sto b-sto--2" role="group" aria-label="Share to the tablets">${opt('mirror', ic('monitor') + ic('tablet'), 'Same screen', 'Tablets show this screen', 'The tablets follow this screen: every step, your drawing, the timer, the pick and the pause')}${opt('solo', ic('tablet'), 'On their own', 'Students work on their tablets', 'Each student works on their own tablet, apart from the classroom screen')}</div>
+      ${shareTo === 'none' ? '' : `<div class="b-sjoin">${join}${hasScreen() ? `<div class="b-sact">${live ? `<span class="b-sstat"><i class="b-live" aria-hidden="true"></i>Tablet preview connected</span>` : ''}<button type="button" class="b-sbtn" data-b="shareopen">${ic('external-link')}${live ? 'Bring the preview to front' : 'Open a tablet preview'}</button></div>` : ''}</div>
+      <div class="b-sfoot"><button type="button" class="b-sbtn b-sbtn--stop" data-b="sharestop">${ic('x')}Stop sharing</button></div>`}`;
   }
 
 
