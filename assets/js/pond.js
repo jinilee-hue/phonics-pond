@@ -834,8 +834,8 @@
   function layerPick() {   // the menu layer while the student pick is on the board
     const notYet = roster.filter(n => !picked.has(n)).length;
     return `<div class="b-lyrow"><div class="b-lyhead b-lyhead--lesson b-lyhead--tool"><h3>${ic('dices')}Pick a student</h3><span class="b-lystate">${notYet} of ${roster.length} still to go</span></div>
-      <div class="b-lytray b-lytray--pick"><div class="b-roster" role="group" aria-label="Class list">${roster.map(n => `<button type="button" class="b-rchip${picked.has(n) ? ' is-done' : ''}${PK.name === n ? ' is-on' : ''}" data-b="pickone" data-v="${esc(n)}" title="Show ${esc(n)}"><i style="--c:${avColor(n)}">${initial(n)}</i><span lang="en">${esc(n)}</span></button>`).join('')}<button type="button" class="b-rchip b-rchip--edit" data-b="rosteredit">${ic('pencil')}<span>Edit list</span></button></div>
-        <div class="b-pn">${back()}<button type="button" class="b-next" data-b="pickrand"><span><b>Pick at random</b><small>Everyone gets a turn</small></span>${ic('shuffle')}</button></div></div></div>`;
+      <div class="b-lytray b-lytray--pick"><div class="b-roster" role="group" aria-label="Class list">${roster.map(n => `<button type="button" class="b-rchip${picked.has(n) ? ' is-done' : ''}${PK.name === n ? ' is-on' : ''}" data-b="pickone" data-v="${esc(n)}" title="Show ${esc(n)}"><i style="--c:${avColor(n)}">${initial(n)}</i><span lang="en">${esc(n)}</span></button>`).join('')}</div>
+        <div class="b-pn"><button type="button" class="b-prev b-redit" data-b="rosteredit" title="Edit the class list" aria-label="Edit the class list">${ic('pencil')}<span>Edit list</span></button>${back()}<button type="button" class="b-next" data-b="pickrand"><span><b>Pick at random</b><small>Everyone gets a turn</small></span>${ic('shuffle')}</button></div></div></div>`;
   }
   function dockPause() {
     const to = { lesson: 'the lesson', timer: 'the timer', pick: 'the student pick' }[resumeTo] || 'the lesson';
