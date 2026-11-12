@@ -154,7 +154,7 @@
   }
   function tick() {
     const left = tLeft();
-    if (TM.run && left <= 0) { TM.run = false; TM.left = 0; TM.done = true; if (!STUDENT) { chime(); renderDock(); broadcast(); } }
+    if (TM.run && left <= 0) { TM.run = false; TM.left = 0; TM.done = true; if (!STUDENT) { chime(); renderDock(); broadcast(); if (dialOpen && scene === 'timer') renderLayer(); } }
     const f = $('#tFull');
     if (f) {
       const st = TM.done ? 'done' : TM.run ? 'run' : left < TM.dur ? 'paused' : 'ready';
@@ -174,6 +174,7 @@
       }
     }
     const dt = $('#dockTimer'); if (dt) dt.textContent = TM.done ? 'Time’s up!' : clock(left);
+    const lt = $('#lyTimer'); if (lt) lt.textContent = TM.done ? 'Time’s up!' : clock(left);
   }
   function drawDial(left) {   // the slice shrinks back to 12 o'clock and the hand rides its edge
     const pie = $('#tPie'), hand = $('#tHand'); if (!pie) return;
@@ -551,7 +552,9 @@
   }
 
   /* ---------- floating board tools ---------- */
+  function syncGdim() { const g = $('#gdim'); if (g) g.hidden = !(guideOpen && CLASSROOM() && !FP.ink.state().on); }   // the guide open: a tap on the board closes it (user: "guide도 화면 누르면 닫히게"); with the pen on, a tap draws
   function renderFab() {
+    syncGdim();
     const k = FP.ink.state(), cur = k.on ? k.tool : 'select';
     const tIcon = { pen: 'pen', hl: 'highlighter', er: 'eraser' }[cur] || 'pen';
     const b = $('#fabBtn'), dial = CLASSROOM(), shut = palOpen || (dial && (dialOpen || menuOpen));   // classroom: the one button closes what is open
@@ -611,7 +614,9 @@
   }
   function renderLayer() {   // user: "버튼 밑에는 오늘 학습 플로우와 meaning first 활동들이 밑에서 레이어 팝업형태로 올라오게"
     const el = $('#layer'), dim = $('#dim'); if (!el || !dim) return;
-    el.hidden = dim.hidden = !dialOpen; if (!dialOpen) { el.innerHTML = ''; return; }
+    el.hidden = dim.hidden = !dialOpen; if (!dialOpen) { el.innerHTML = ''; root.dataset.dialtool = 'none'; return; }
+    const tool = scene === 'timer' || scene === 'pick' ? scene : 'none'; root.dataset.dialtool = tool;   // a class tool on the board: its settings under the × (user)
+    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : layerPick(); return; }
     const flow = FP.flow(), cur = FP.cur(), extra = FP.mode() === 'extra', L = FP.lesson(), xi = FP.extraInfo();
     const card = a => { const on = !extra && a.id === cur.id, done = !extra && a.index < cur.index;
       return `<button type="button" class="b-card${on ? ' is-on' : ''}${done ? ' is-done' : ''}" data-b="go" data-v="${a.id}"><small>${done ? ic('check') : ''}<span>${esc(a.kicker)}</span><span class="b-lymin">${planMin(a)} min</span></small><b lang="en">${esc(a.title)}</b></button>`; };   // kicker · minutes, then the title (the Prep/SB/Home tag said what the kicker says)
@@ -818,6 +823,20 @@
       <div class="b-tooltray b-tooltray--roster"><div class="b-roster" role="group" aria-label="Class list">${roster.map(n => `<button type="button" class="b-rchip${picked.has(n) ? ' is-done' : ''}${PK.name === n ? ' is-on' : ''}" data-b="pickone" data-v="${esc(n)}" title="Show ${esc(n)}"><i style="--c:${avColor(n)}">${initial(n)}</i><span lang="en">${esc(n)}</span></button>`).join('')}<button type="button" class="b-rchip b-rchip--edit" data-b="rosteredit">${ic('pencil')}<span>Edit list</span></button></div></div>
       <div class="b-dright"><div class="b-pn">${back()}<button type="button" class="b-next" data-b="pickrand"><span><b>Pick at random</b><small>Everyone gets a turn</small></span>${ic('shuffle')}</button></div></div></div>`;
   }
+  function layerTimer() {   // the menu layer while the timer is on the board
+    const left = tLeft(), state = TM.done ? 'Time’s up' : TM.run ? 'Running' : left < TM.dur ? 'Paused' : 'Ready';
+    const go = TM.run ? ['Pause', 'The time stops', 'pause'] : TM.done ? ['Start again', clock(TM.dur), 'play'] : left < TM.dur ? ['Resume', clock(left) + ' left', 'play'] : ['Start', clock(TM.dur), 'play'];
+    return `<div class="b-lyrow"><div class="b-lyhead b-lyhead--lesson b-lyhead--tool"><h3>${ic('timer')}Timer</h3><span class="b-lystate"><b id="lyTimer">${TM.done ? 'Time’s up!' : clock(left)}</b> · ${state}</span></div>
+      <div class="b-lytray"><div class="b-chips" role="group" aria-label="Timer length">${PRESETS.map(([ms, l]) => `<button type="button" class="b-chip${TM.dur === ms ? ' is-on' : ''}" data-b="tset" data-v="${ms}" title="Start ${l}">${l}</button>`).join('')}</div>
+        <div class="b-chips"><button type="button" class="b-chip b-chip--icon" data-b="tadd" data-v="-30000" title="30 seconds less" aria-label="30 seconds less">${ic('minus')}</button><span class="b-chipl">30 s</span><button type="button" class="b-chip b-chip--icon" data-b="tadd" data-v="30000" title="30 seconds more" aria-label="30 seconds more">${ic('plus')}</button><button type="button" class="b-chip b-chip--quiet" data-b="treset">${ic('rotate-ccw')}Reset</button></div>
+        <div class="b-pn">${back()}<button type="button" class="b-next" data-b="tgo"><span><b>${go[0]}</b><small>${go[1]}</small></span>${ic(go[2])}</button></div></div></div>`;
+  }
+  function layerPick() {   // the menu layer while the student pick is on the board
+    const notYet = roster.filter(n => !picked.has(n)).length;
+    return `<div class="b-lyrow"><div class="b-lyhead b-lyhead--lesson b-lyhead--tool"><h3>${ic('dices')}Pick a student</h3><span class="b-lystate">${notYet} of ${roster.length} still to go</span></div>
+      <div class="b-lytray b-lytray--pick"><div class="b-roster" role="group" aria-label="Class list">${roster.map(n => `<button type="button" class="b-rchip${picked.has(n) ? ' is-done' : ''}${PK.name === n ? ' is-on' : ''}" data-b="pickone" data-v="${esc(n)}" title="Show ${esc(n)}"><i style="--c:${avColor(n)}">${initial(n)}</i><span lang="en">${esc(n)}</span></button>`).join('')}<button type="button" class="b-rchip b-rchip--edit" data-b="rosteredit">${ic('pencil')}<span>Edit list</span></button></div>
+        <div class="b-pn">${back()}<button type="button" class="b-next" data-b="pickrand"><span><b>Pick at random</b><small>Everyone gets a turn</small></span>${ic('shuffle')}</button></div></div></div>`;
+  }
   function dockPause() {
     const to = { lesson: 'the lesson', timer: 'the timer', pick: 'the student pick' }[resumeTo] || 'the lesson';
     return `<div class="b-dockrow b-dockrow--tool"><div class="b-now"><div class="b-ring b-ring--icon">${ic('monitor-pause')}</div><div class="b-nowtx"><small>On the student screen</small><b>Eyes on me</b><span>${live ? 'The tablets are paused' : 'The student screen is paused'}</span></div></div>
@@ -844,7 +863,7 @@
   }
 
   /* ---------- timer actions ---------- */
-  function timerChanged() { renderDock(); tick(); broadcast(); }
+  function timerChanged() { renderDock(); tick(); broadcast(); if (dialOpen && scene === 'timer') renderLayer(); }
   function timerAct(a, v) {
     if (a === 'tset') { TM.dur = TM.left = v; TM.done = false; TM.run = true; TM.endAt = Date.now() + v; }
     if (a === 'tgo') {
@@ -879,7 +898,7 @@
     picked = new Set([...picked].filter(n => roster.includes(n))); put('pondc-picked', [...picked]);
     if (PK.name && !roster.includes(PK.name)) { PK.name = ''; PK.seq = null; }
     if (scene === 'pick') renderScene();
-    $('#rosterPop').hidePopover(); renderDock(); broadcast();
+    $('#rosterPop').hidePopover(); renderDock(); broadcast(); if (dialOpen && scene === 'pick') renderLayer();
   }
 
   /* ---------- run of show ---------- */
@@ -1049,7 +1068,7 @@
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
     const t = e.target.closest('[data-b]'); if (!t || t.disabled) return;
-    const a = t.dataset.b, v = t.dataset.v;
+    const a = t.dataset.b, v = t.dataset.v, inLayer = !!t.closest('#layer');   // (read before the layer re-renders under the click)
     switch (a) {
       case 'go': FP.go(v, 0); break;
       case 'step': FP.setStep(+v); break;
@@ -1083,7 +1102,7 @@
       case 'rosteredit': $('#rosterPop').showPopover(); break;
       case 'rostersave': saveRoster(); break;
       case 'rosterclose': $('#rosterPop').hidePopover(); break;
-      case 'rosterclear': picked.clear(); put('pondc-picked', []); PK.name = ''; PK.seq = null; $('#rosterPop').hidePopover(); if (scene === 'pick') renderScene(); renderDock(); broadcast(); break;
+      case 'rosterclear': picked.clear(); put('pondc-picked', []); PK.name = ''; PK.seq = null; $('#rosterPop').hidePopover(); if (scene === 'pick') renderScene(); renderDock(); broadcast(); if (dialOpen && scene === 'pick') renderLayer(); break;
       case 'gplay': { const it = curGame(); if (it) { game = { id: it.id, where: v === 'screen' ? 'screen' : 'here' }; renderGame(); renderDock(); broadcast(); } break; }
       case 'gstop': game = null; renderGame(); renderDock(); broadcast(); break;
       case 'mtoggle': case 'mrestart': mediaCmd(a); break;
@@ -1099,8 +1118,13 @@
       case 'posreset': pos = {}; put('pondc-pos', pos); placeFab(); renderDisplay(); break;
     }
     if (menuOpen && ['go', 'extra', 'close', 'mapsec', 'mapopen', 'scene'].includes(a) && !t.closest('.b-dock, .b-sheet, .b-npanel')) setMenu(false);   // picked: the class sees it
-    if (dialOpen && (a === 'go' || a === 'extra' || a === 'scene')) setDial(false);   // picked in the layer or the Quick ring: the class sees it
+    const toolSet = a === 'scene' && (v === 'timer' || v === 'pick') && scene === v;
+    if (dialOpen && toolSet) { quickOpen = false; renderLayer(); placeFab(); renderFab(); }   // Timer / Pick: their settings in the layer under the × (user)
+    else if (dialOpen && (a === 'go' || a === 'extra' || a === 'scene')) setDial(false);   // picked in the layer or the Quick ring: the class sees it
+    if (dialOpen && inLayer && (a === 'tset' || (a === 'tgo' && TM.run) || a === 'pickrand' || a === 'pickone')) setDial(false);   // started / picked: the class sees it
+    else if (dialOpen && inLayer && root.dataset.dialtool !== 'none') placeFab();   // the tool layer may have changed height
   });
+  $('#gdim').addEventListener('click', () => { if (notesOpen || flowOpen) { notesOpen = flowOpen = false; renderFlow(); renderNotes(); renderDock(); } setGuide(false); });   // the guide's sheets go with it
   $('#fabBtn').addEventListener('click', () => {   // classroom: the one button opens Menu · Guide · Pen, or closes what is open
     if (!CLASSROOM()) { setPal(!palOpen); return; }
     if (palOpen) setPal(false); else if (menuOpen) setMenu(false); else setDial(!dialOpen);

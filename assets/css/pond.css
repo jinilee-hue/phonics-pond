@@ -896,6 +896,8 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 :root.is-moving .b-fab{transition:none}
 .b-dim{position:absolute;inset:0;z-index:46;background:rgba(8,10,14,.5);animation:b-fade .2s ease both}
 .b-dim[hidden],.b-layer[hidden]{display:none}
+.b-gdim{position:absolute;inset:0;z-index:34;background:transparent}   /* the guide open: a tap on the board closes it — under the one button (35), the sheets (40), the drawer (40) and the notes (45) */
+.b-gdim[hidden],:root:not([data-screen="full"]) .b-gdim{display:none}
 @keyframes b-fade{from{opacity:0}}
 .b-layer{position:absolute;left:0;right:0;bottom:0;z-index:47;display:grid;gap:12px;padding:calc(var(--fab-s,64px) / 2 + 16px) max(20px,calc((100% - 1760px) / 2)) 18px;border-radius:30px 30px 0 0;background:var(--bg);box-shadow:0 -24px 70px -24px rgba(0,0,0,.6);animation:b-up .26s cubic-bezier(.2,.8,.2,1) both}
 .b-lyrow{min-width:0}
@@ -943,6 +945,20 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-layer .b-xi:hover .b-xthumb img{transform:scale(1.05)}
 .b-xthumb .i{width:34px;height:34px}
 .b-layer .b-xi.is-soon .b-xthumb{color:#9AA1AD}
+/* a class tool on the board: its settings in the layer under the × (user: "timer설정하는 기능과 pick 기능 설정하는건 x 버튼 밑에");
+   the board is only lightly dimmed so the clock / the pick card stay in view */
+:root[data-dialtool="timer"] .b-dim,:root[data-dialtool="pick"] .b-dim{background:rgba(8,10,14,.16)}
+.b-lyhead--tool{gap:16px;margin-bottom:12px}
+.b-lyhead--tool h3{gap:10px}
+.b-lyhead--tool h3 .i{width:24px;height:24px;color:var(--acc-text)}
+.b-lystate{font-size:15px;font-weight:700;color:var(--tx)}
+.b-lystate b{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+.b-lytray{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px}
+.b-lytray .b-pn{margin-left:auto}
+.b-lytray .b-chipl{color:var(--tx)}   /* --tx3 on the layer's --bg: 1.6–4.4:1 on Mint / Yellow / Blue / Pink */
+.b-lytray .b-prev{width:72px;height:72px;border-radius:20px}
+.b-lytray .b-next{height:72px;min-width:240px;border-radius:20px}
+.b-lytray--pick .b-roster{flex:1 1 420px;min-width:0}
 .b-layer .b-xi b{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px 12px 10px;background:linear-gradient(0deg,rgba(0,0,0,.86),rgba(0,0,0,.6) calc(100% - 24px),rgba(0,0,0,.36) calc(100% - 16px),rgba(0,0,0,.15) calc(100% - 8px),rgba(0,0,0,0));color:#fff;font-size:15px;font-weight:800;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.55)}   /* the shade travels with the name: every line sits on it */
 .b-layer .b-xi.is-soon b{color:rgba(255,255,255,.8)}
 .b-layer .b-xi .b-xgame,.b-layer .b-xi .b-xvid,.b-layer .b-xi em{position:absolute;top:9px;left:9px;right:auto;z-index:2}   /* the tag on the picture */
