@@ -1112,7 +1112,7 @@
   });
   $('#lessonBtn').addEventListener('click', () => openMap(true));
   $('#map').addEventListener('click', e => { if (e.target === e.currentTarget && CLASSROOM()) openMap(false); });   // classroom: a tap on the dimmed board above the sheet closes it
-  $('#fsBtn').addEventListener('click', () => FP.fullscreen());
+  $('#fsBtn').addEventListener('click', () => { if (root.dataset.screen === 'desk') setLayout('screen', 'full'); else FP.fullscreen(); });   // With controls: Full screen = the full-screen version straight away (user: "with controls 모드에서 전체보기 누르면 full screen 버전으로 바로 전환")
   document.addEventListener('fullscreenchange', () => { $('#fsBtn').innerHTML = ic(document.fullscreenElement ? 'minimize' : 'maximize'); });
   const POPS = { extrasPop: ['extrasBtn', renderExtras], helpPop: ['helpBtn', null], sharePop: ['shareBtn', renderShare], displayPop: ['displayBtn', renderDisplay] };
   Object.entries(POPS).forEach(([p, [b, fill]]) => {
