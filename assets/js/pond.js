@@ -446,6 +446,8 @@
   /* ================= teacher view ================= */
   let notesOpen = false, flowOpen = false, notesTab = 'plan', mapPick = null, palOpen = false;
   let menuOpen = false, guideOpen = false, dialOpen = false, quickOpen = false;   // classroom screen: the teacher guide and the one button's Settings · Quick · Guide (+ Quick's ring) stay hidden until asked for
+  let layerOutT = 0, itemsOutT = 0, qoutT = 0, fabHtml = '', fabFace = '';   // motion: folding away, Quick folding, the one button's face
+  const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   let fanGeo = null;   // classroom screen: where the one button's arc opens
   let pos = get('pondc-pos', {});   // where the teacher dragged the one button (classroom screen): centre as a fraction of the board
   pos = pos && typeof pos === 'object' && Array.isArray(pos.fab) ? { fab: pos.fab } : {};
@@ -563,12 +565,24 @@
     b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Guide · Quick · Settings · drawing is on (D) · drag to move' : 'Phonics POND — Guide · Quick · Settings · drag to move')
       : palOpen ? 'Hide board tools' : k.on ? 'Board tools — drawing is on (D)' : 'Board tools (D = pen)';
     const face = dial ? '<svg class="b-fabmark" viewBox="0 0 64 64" aria-hidden="true"><use href="#pond-mark"/></svg>' : ic(k.on ? tIcon : 'pen');   // classroom: our symbol on the one button (user: "메뉴 표시 대신에 우리 심볼아이콘")
-    b.innerHTML = shut ? ic('x') : `${face}${k.on && cur !== 'er' ? `<i class="b-fabdot" style="--c:${k.color}"></i>` : ''}${k.count && !k.on && !dial ? `<i class="b-fabn">${k.count}</i>` : ''}`;
+    const fh = shut ? ic('x') : `${face}${k.on && cur !== 'er' ? `<i class="b-fabdot" style="--c:${k.color}"></i>` : ''}${k.count && !k.on && !dial ? `<i class="b-fabn">${k.count}</i>` : ''}`;
+    if (fh !== fabHtml) {   // only on a change — a re-render would replay the turn
+      const kind = shut ? 'x' : 'face', turn = fabHtml && kind !== fabFace && !RM();
+      b.innerHTML = fh; fabHtml = fh; fabFace = kind;
+      if (turn && b.firstElementChild) b.firstElementChild.classList.add(shut ? 'b-fabin-x' : 'b-fabin');   // × turns in, our symbol turns back (user: "3번")
+    }
     const items = $('#dialItems');   // Settings · Quick · Guide on the half disc; Quick's ring of round buttons just outside it
     if (items) {
-      items.hidden = !(dial && dialOpen);
-      if (items.hidden) { items.innerHTML = ''; items.classList.remove('is-quick'); }
-      else {
+      if (!(dial && dialOpen)) {   // closing: the ring and the disc fold into the button first (user: "2번"), then go
+        if (!items.classList.contains('is-out')) {
+          if (!items.hidden && items.children.length && !RM()) {
+            items.classList.add('is-out'); root.classList.add('is-dialout'); clearTimeout(itemsOutT);
+            itemsOutT = setTimeout(() => { items.hidden = true; items.innerHTML = ''; items.classList.remove('is-quick', 'is-qout', 'is-out'); if (!$('#layer').classList.contains('is-out')) root.classList.remove('is-dialout'); }, 180);
+          } else { items.hidden = true; items.innerHTML = ''; items.classList.remove('is-quick', 'is-qout'); }
+        }
+      } else {
+        if (items.classList.contains('is-out')) { clearTimeout(itemsOutT); items.classList.remove('is-out'); }   // reopened while folding: the fan replays
+        items.hidden = false;
         const shareIc = shareTo !== 'none' ? (hasScreen() ? 'monitor' : 'tablet') : 'cast';
         const want = [   // [class, action, value, icon, label, on, tip, live dot, count]
           ['b-dialitem', 'dguide', '', 'notebook-pen', 'Guide', guideOpen, 'Teacher guide — what to say and do (G)'],   // Guide · Quick · Settings (user: "셋팅과 가이드 메뉴 순서 바꿔줘")
@@ -583,7 +597,11 @@
           const b = items.querySelector(`[data-b="${w[1]}"]${w[2] ? `[data-v="${w[2]}"]` : ''}`); if (!b) return;
           b.classList.toggle('is-on', !!w[5]); b.setAttribute('aria-pressed', !!w[5]); b.title = w[6]; const h = inner(w); if (b.dataset.h !== h) { b.innerHTML = h; b.dataset.h = h; }
         });
-        items.classList.toggle('is-quick', quickOpen);
+        if (!quickOpen && items.classList.contains('is-quick') && !items.classList.contains('is-qout') && !RM()) {   // Quick folds its ring back into the disc (user: "6번")
+          items.classList.add('is-qout'); clearTimeout(qoutT);
+          qoutT = setTimeout(() => { items.classList.remove('is-qout'); if (!quickOpen) items.classList.remove('is-quick'); }, 160);
+        } else if (quickOpen) { clearTimeout(qoutT); items.classList.remove('is-qout'); items.classList.add('is-quick'); }
+        else if (!items.classList.contains('is-qout')) items.classList.remove('is-quick');
         layoutFan();
       }
     }
@@ -615,9 +633,19 @@
   }
   function renderLayer() {   // user: "버튼 밑에는 오늘 학습 플로우와 meaning first 활동들이 밑에서 레이어 팝업형태로 올라오게"
     const el = $('#layer'), dim = $('#dim'); if (!el || !dim) return;
-    el.hidden = dim.hidden = !dialOpen; if (!dialOpen) { el.innerHTML = ''; root.dataset.dialtool = 'none'; return; }
+    if (!dialOpen) {   // closing: the layer slides down and the dim fades (user: "2번"), then they go
+      if (el.classList.contains('is-out')) return;
+      const done = () => { el.hidden = dim.hidden = true; el.innerHTML = ''; el.classList.remove('is-out', 'is-morph'); dim.classList.remove('is-out'); root.dataset.dialtool = 'none'; if (!$('#dialItems').classList.contains('is-out')) root.classList.remove('is-dialout'); };
+      if (el.hidden || RM()) { clearTimeout(layerOutT); done(); return; }
+      el.getAnimations().forEach(a => a.cancel()); el.classList.add('is-out'); dim.classList.add('is-out'); root.classList.add('is-dialout');
+      clearTimeout(layerOutT); layerOutT = setTimeout(done, 180); return;
+    }
+    clearTimeout(layerOutT); el.classList.remove('is-out'); dim.classList.remove('is-out'); root.classList.remove('is-dialout');   // (reopened while folding: it rises again)
+    const was = !el.hidden, h0 = was ? el.getBoundingClientRect().height : 0, k0 = root.dataset.dialtool;   // a change while open morphs (user: "7번")
+    const pOn = was ? el.querySelector('.b-lysec.is-on') : null, pR = pOn ? pOn.getBoundingClientRect() : null, pV = pOn ? pOn.dataset.v : null;   // the section line slides from here (user: "4번")
+    el.hidden = dim.hidden = false;
     const tool = scene === 'timer' || scene === 'pick' ? scene : 'none'; root.dataset.dialtool = tool;   // a class tool on the board: its settings under the × (user); Pause has none (user: "아래 패널 열리는거만 빼줘") — the usual layer, Lesson on the Quick ring
-    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : layerPick(); return; }
+    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : layerPick(); morphLayer(el, was, h0, k0); return; }
     const flow = FP.flow(), cur = FP.cur(), extra = FP.mode() === 'extra', L = FP.lesson(), xi = FP.extraInfo();
     const card = a => { const on = !extra && a.id === cur.id, done = !extra && a.index < cur.index;
       return `<button type="button" class="b-card${on ? ' is-on' : ''}${done ? ' is-done' : ''}" data-b="go" data-v="${a.id}"><small>${done ? ic('check') : ''}<span>${esc(a.kicker)}</span><span class="b-lymin">${planMin(a)} min</span></small><b lang="en">${esc(a.title)}</b></button>`; };   // kicker · minutes, then the title (the Prep/SB/Home tag said what the kicker says)
@@ -629,6 +657,22 @@
       <div class="b-lyrow b-lyrow--mf"><div class="b-lyhead"><h3>${ic('layers')}Meaning First</h3></div><div class="b-lycards">${mfGroup.items.map(tile).join('')}</div></div>`;
     const on = el.querySelector('.b-card.is-on'); if (on) { const box = on.parentElement; box.scrollLeft = on.offsetLeft - box.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
     const sec = el.querySelector('.b-lysec.is-on'); if (sec) sec.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    if (pR && pR.width && sec && sec.dataset.v !== pV && !RM()) {   // the line slides over from the old tab (user: "4번"); it runs 12 px in from each side
+      const nR = sec.getBoundingClientRect();
+      sec.style.setProperty('--ux', (pR.left - nR.left).toFixed(1) + 'px'); sec.style.setProperty('--us', ((pR.width - 24) / Math.max(1, nR.width - 24)).toFixed(3)); sec.classList.add('is-slide');
+    }
+    morphLayer(el, was, h0, k0);
+  }
+  function morphLayer(el, was, h0, k0) {   // changed while open: another kind of content rises in, the height glides (user: "7번"); placeFab rides on the final height
+    el.getAnimations().forEach(x => { if (x.id === 'morph') x.cancel(); });   // a render during a morph (scene + Quick both render): measure the real height
+    const h1 = el.getBoundingClientRect().height; el.dataset.h = Math.round(h1);
+    if (!was || RM()) { el.classList.remove('is-morph'); return; }
+    const now = performance.now(); if (k0 !== root.dataset.dialtool) el._fadeEnd = now + 240;
+    if (el._fadeEnd > now) [...el.children].forEach(c => { const x = c.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }], { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' }); x.currentTime = 240 - (el._fadeEnd - now); });   // (a re-render keeps the rise going)
+    if (Math.abs(h1 - h0) > 2) {
+      el.classList.add('is-morph');
+      el.animate([{ height: h0 + 'px' }, { height: h1 + 'px' }], { duration: 260, easing: 'cubic-bezier(.2,.8,.2,1)', id: 'morph' }).onfinish = () => el.classList.remove('is-morph');
+    } else el.classList.remove('is-morph');
   }
   function placePop(pop) {   // classroom: menus rise from the bottom edge, centred (Settings / Quick open them; no menu bar) — desk layout: under the button
     if (!CLASSROOM()) return false;
@@ -676,7 +720,7 @@
       if (q) { sl = Math.max(sl, q.r + 12); if (cx + RW > q.l - 12 && cx - RW < q.r + 12 && cy + H > q.t && cy - H < q.b) cx = q.r + 12 + RW; }   // beside the notes panel
     }
     if (menuOpen && !dialOpen) { const tb = $('.b-top'), top = tb ? tb.offsetTop - wrap.offsetTop : ch; if (cy + H > top - 12) cy = top - 12 - H; }   // above the menu bar
-    if (dialOpen) { const ly = $('#layer'); cx = gx + sw / 2; cy = Math.max(gy + 190, ly && !ly.hidden ? ch - ly.offsetHeight : gy + sh - m - H); }   // open: the button rides on the layer's top edge, the menu above it
+    if (dialOpen) { const ly = $('#layer'); cx = gx + sw / 2; cy = Math.max(gy + 190, ly && !ly.hidden ? ch - (ly.classList.contains('is-morph') ? +ly.dataset.h || ly.offsetHeight : ly.offsetHeight) : gy + sh - m - H); }   // open: the button rides on the layer's top edge, the menu above it
     const up = cy > gy + sh / 2, onRight = cx > gx + sw / 2, mid = dialOpen || (Math.abs(cx - (gx + sw / 2)) < sw / 6 && cw - sr - sl >= 560);   // in the middle (and room for the tools strip)
     const beside = mid && guideOpen && side === 'bottom', pal = $('#fabPal');   // a guide along the bottom leaves no room above the button: the strip goes beside it
     fab.classList.toggle('is-side', beside);

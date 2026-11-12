@@ -1024,3 +1024,41 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-thumb--screen-full .n{display:block;left:50%;right:auto;top:auto;bottom:9%;width:auto;height:20%;aspect-ratio:1;border-radius:50%;background:var(--d4);transform:translateX(-50%)}   /* the one button, bottom centre */
 .b-thumb--screen-desk .s{left:24%;right:24%;top:18%;bottom:27%}
 .b-thumb--screen-desk .d{left:5%;right:5%;bottom:6%;height:15%}
+
+/* ---------- motion (user picked 1–7 from the list) ---------- */
+/* 1 · touch feedback: every control dips while pressed — the wall screen has no hover ("1번") */
+.b-fabside,.b-chip,.b-prev,.b-rchip,.b-sbtn,.b-opt,.b-sto button,.b-dialitem,.b-qitem{transition:transform .1s ease-out}
+:root:not(.is-moving) .b-fabbtn:active{transform:scale(.92)}
+.b-dialitem:active,.b-qitem:active{transform:translate(var(--dx,0px),var(--dy,0px)) scale(.9)}   /* placed by translate: keep it */
+.b-fabside:active:not(:disabled),.b-prev:active:not(:disabled),.b-lymap:active{transform:scale(.92)}
+.b-chip:active:not(:disabled),.b-rchip:active:not(:disabled),.b-fabpal button:active:not(:disabled){transform:scale(.94)}
+.b-sbtn:active:not(:disabled),.b-opt:active:not(:disabled),.b-sto button:active{transform:scale(.96)}
+.b-layer .b-card:active,.b-layer .b-xi:active{transform:scale(.97)}
+/* 2 · closing: the ring and the disc fold into the button, the layer slides down, the dim fades — then they go ("2번") */
+:root.is-dialout .b-fab{z-index:48}
+:root[data-screen="full"].is-dialout .b-stagewrap{z-index:49}
+:root.is-dialout .b-fabside{visibility:hidden}
+.b-layer.is-out{animation:b-down .18s cubic-bezier(.4,0,1,1) both;pointer-events:none}
+.b-dim.is-out{animation:b-fadeout .18s ease both;pointer-events:none}
+.b-dialitems.is-out{pointer-events:none}
+.b-dialitems.is-out::before{animation:b-discout .18s cubic-bezier(.4,0,1,1) both}
+.b-dialitems.is-out .b-dialitem,.b-dialitems.is-out .b-qitem,.b-dialitems.is-qout .b-qitem{animation:b-fanout .16s cubic-bezier(.4,0,1,1) both}
+/* 6 · Quick folds its ring back into the disc ("6번") */
+.b-dialitems.is-qout .b-qitem{display:grid;pointer-events:none}
+@keyframes b-down{to{opacity:0;transform:translateY(28px)}}
+@keyframes b-fadeout{to{opacity:0}}
+@keyframes b-discout{to{opacity:0;transform:scale(.35)}}
+@keyframes b-fanout{to{opacity:0;transform:translate(0,0) scale(.3)}}
+/* 3 · the one button's face: × turns in, our symbol turns back ("3번") */
+.b-fabbtn > .b-fabin-x{animation:b-turnx .22s cubic-bezier(.2,.8,.2,1) both}
+.b-fabbtn > .b-fabin{animation:b-turnmark .22s cubic-bezier(.2,.8,.2,1) both}
+@keyframes b-turnx{from{opacity:0;transform:rotate(-90deg) scale(.6)}}
+@keyframes b-turnmark{from{opacity:0;transform:rotate(90deg) scale(.6)}}
+/* 4 · section tabs: the line slides over from the old tab ("4번") */
+.b-lysec.is-slide::after{transform-origin:0 50%;animation:b-uline .24s cubic-bezier(.2,.8,.2,1) both}
+@keyframes b-uline{from{transform:translateX(var(--ux,0px)) scaleX(var(--us,1))}}
+/* 5 · Settings · Share · Edit list rise like the layer ("5번") */
+:root[data-screen="full"] .b-pop:popover-open{animation:b-up .24s cubic-bezier(.2,.8,.2,1) both}
+/* 7 · the layer's content changes while open: the height glides, the new content rises in (JS) ("7번") */
+.b-layer.is-morph{overflow:hidden}
+@media (prefers-reduced-motion:reduce){:root[data-screen="full"] .b-pop:popover-open,.b-fabbtn > .b-fabin-x,.b-fabbtn > .b-fabin,.b-lysec.is-slide::after{animation:none}}
