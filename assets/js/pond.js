@@ -445,7 +445,7 @@
 
   /* ================= teacher view ================= */
   let notesOpen = false, flowOpen = false, notesTab = 'plan', mapPick = null, palOpen = false;
-  let menuOpen = false, guideOpen = false, dialOpen = false;   // classroom screen: the menu, the teacher guide and the one button's Menu · Guide · Pen stay hidden until asked for
+  let menuOpen = false, guideOpen = false, dialOpen = false, quickOpen = false;   // classroom screen: the teacher guide and the one button's Settings · Quick · Guide (+ Quick's ring) stay hidden until asked for
   let fanGeo = null;   // classroom screen: where the one button's arc opens
   let pos = get('pondc-pos', {});   // where the teacher dragged the one button (classroom screen): centre as a fraction of the board
   pos = pos && typeof pos === 'object' && Array.isArray(pos.fab) ? { fab: pos.fab } : {};
@@ -492,7 +492,7 @@
     if (v !== 'lesson') pauseMedia();
     if (v === 'pick' && scene !== 'pick' && Date.now() - PK.t0 > 1500) { PK.name = ''; PK.seq = null; }   // a fresh "Who's next?" board
     scene = v;
-    renderScenes(); renderScene(); renderDock(); broadcast();
+    renderScenes(); renderScene(); renderDock(); broadcast(); if (dialOpen) renderFab();
   }
   const coreGuide = FP.guide;   // Meaning First › Games: what to say and do
   FP.guide = (...args) => {
@@ -557,18 +557,31 @@
     const tIcon = { pen: 'pen', hl: 'highlighter', er: 'eraser' }[cur] || 'pen';
     const b = $('#fabBtn'), dial = CLASSROOM(), shut = palOpen || (dial && (dialOpen || menuOpen));   // classroom: the one button closes what is open
     b.classList.toggle('is-ink', k.on && !shut); b.classList.toggle('is-open', shut);
-    b.setAttribute('aria-expanded', dial ? dialOpen || palOpen || menuOpen : palOpen); b.setAttribute('aria-label', dial ? 'Menu, guide and board tools' : 'Board tools');
-    b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Menu · Guide · Pen · drawing is on (D) · drag to move' : 'Phonics POND — Menu · Guide · Pen · drag to move')
+    b.setAttribute('aria-expanded', dial ? dialOpen || palOpen || menuOpen : palOpen); b.setAttribute('aria-label', dial ? 'Settings, quick tools and guide' : 'Board tools');
+    b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Settings · Quick · Guide · drawing is on (D) · drag to move' : 'Phonics POND — Settings · Quick · Guide · drag to move')
       : palOpen ? 'Hide board tools' : k.on ? 'Board tools — drawing is on (D)' : 'Board tools (D = pen)';
     const face = dial ? '<svg class="b-fabmark" viewBox="0 0 64 64" aria-hidden="true"><use href="#pond-mark"/></svg>' : ic(k.on ? tIcon : 'pen');   // classroom: our symbol on the one button (user: "메뉴 표시 대신에 우리 심볼아이콘")
     b.innerHTML = shut ? ic('x') : `${face}${k.on && cur !== 'er' ? `<i class="b-fabdot" style="--c:${k.color}"></i>` : ''}${k.count && !k.on && !dial ? `<i class="b-fabn">${k.count}</i>` : ''}`;
-    const items = $('#dialItems');   // Menu · Guide · Pen, toward the middle of the board
+    const items = $('#dialItems');   // Settings · Quick · Guide on the half disc; Quick's ring of round buttons just outside it
     if (items) {
       items.hidden = !(dial && dialOpen);
-      const it = (a, icon, label, on, tip, n) => `<button type="button" class="b-dialitem${on ? ' is-on' : ''}" data-b="${a}" aria-pressed="${on}" title="${tip}">${ic(icon)}<span>${label}</span>${n ? `<i class="b-fabn">${n}</i>` : ''}</button>`;
-      if (!items.hidden) {
-        items.innerHTML = it('dmenu', 'menu', 'Menu', menuOpen, 'Menu — lessons, activities, share, display')
-          + it('dpen', 'pen', 'Pen', k.on, 'Pen — draw on the board, tools at hand (D)', k.count && !k.on ? k.count : 0) + it('dguide', 'notebook-pen', 'Guide', guideOpen, 'Teacher guide — what to say and do (G)');   // Menu · Pen · Guide (user: "판서버튼이랑 가이드 버튼 위치 순서 바꿔줘")
+      if (items.hidden) { items.innerHTML = ''; items.classList.remove('is-quick'); }
+      else {
+        const shareIc = shareTo !== 'none' ? (hasScreen() ? 'monitor' : 'tablet') : 'cast';
+        const want = [   // [class, action, value, icon, label, on, tip, live dot, count]
+          ['b-dialitem', 'dset', '', 'settings', 'Settings', false, 'Settings — the template: guide position, notes, colour'],   // user: "menu 버튼은 설정으로"
+          ['b-dialitem', 'dquick', '', 'zap', 'Quick', quickOpen, 'Quick — what students see, share, pen'],   // user: "pen버튼 자리에는 퀵 버튼으로"
+          ['b-dialitem', 'dguide', '', 'notebook-pen', 'Guide', guideOpen, 'Teacher guide — what to say and do (G)'],
+          ...SCENES.map(([v, i, l, t]) => ['b-qitem', 'scene', v, i, l, scene === v, t]),   // what students see
+          ['b-qitem', 'qshare', '', shareIc, live ? 'Sharing' : 'Share', shareTo !== 'none', shareTo !== 'none' ? 'Sharing — the share settings (S)' : 'Share with students (S)', live],
+          ['b-qitem', 'dpen', '', 'pen', 'Pen', k.on, 'Pen — draw on the board, tools at hand (D)', false, k.count && !k.on ? k.count : 0]];
+        const inner = w => `${ic(w[3])}<span>${w[4]}</span>${w[7] ? '<i class="b-live" aria-hidden="true"></i>' : ''}${w[8] ? `<i class="b-fabn">${w[8]}</i>` : ''}`;
+        if (items.children.length !== want.length) items.innerHTML = want.map(w => `<button type="button" class="${w[0]}${w[5] ? ' is-on' : ''}" data-b="${w[1]}"${w[2] ? ` data-v="${w[2]}"` : ''} aria-pressed="${!!w[5]}" title="${w[6]}">${inner(w)}</button>`).join('');
+        else want.forEach(w => {   // in place: a re-render would replay the fan-out
+          const b = items.querySelector(`[data-b="${w[1]}"]${w[2] ? `[data-v="${w[2]}"]` : ''}`); if (!b) return;
+          b.classList.toggle('is-on', !!w[5]); b.setAttribute('aria-pressed', !!w[5]); b.title = w[6]; const h = inner(w); if (b.dataset.h !== h) { b.innerHTML = h; b.dataset.h = h; }
+        });
+        items.classList.toggle('is-quick', quickOpen);
         layoutFan();
       }
     }
@@ -582,7 +595,7 @@
   function setPal(open) { palOpen = open; renderFab(); if (open) requestAnimationFrame(placeFab); }   // (the strip is placed once it has its size)
 
   /* ---------- classroom screen: the teacher's screen IS the classroom screen (user: "강사용 대시보드가 곧 수업시 교실안에 스크린과 동일하게")
-     The board fills the screen; one button (our symbol, bottom centre) fans out Menu · Guide · Pen: the menu (former top bar) is a bar along the bottom, the teacher guide (dock, notes) slides in on demand —
+     The board fills the screen; one button (our symbol, bottom centre) fans out Settings · Quick · Guide over a layer of today's flow: Settings = the template, Quick = what students see · Share · Pen, the teacher guide (dock, notes) slides in on demand —
      no menus along the top ("위에 메뉴들이 있으면 불편"). Display › Screen › With controls keeps the desk layout. ---------- */
   const CLASSROOM = () => root.dataset.screen === 'full' && !STUDENT;
   const MENU_POPS = ['extrasPop', 'sharePop', 'displayPop', 'helpPop', 'secMenu', 'actMenu'];
@@ -593,8 +606,8 @@
     renderFab(); requestAnimationFrame(placeFab);   // the button steps above the menu bar
   }
   function setGuide(on) { guideOpen = !!on && CLASSROOM(); root.dataset.guide = guideOpen ? 'open' : 'closed'; renderFab(); requestAnimationFrame(placeFab); }
-  function setDial(on) {   // the one button's menu: dim + the layer (today's flow, Meaning First) + Menu · Guide · Pen on a half disc
-    dialOpen = !!on && CLASSROOM(); root.dataset.dial = dialOpen ? 'open' : 'closed';
+  function setDial(on) {   // the one button's menu: dim + the layer (today's flow, Meaning First) + Settings · Quick · Guide on a half disc
+    dialOpen = !!on && CLASSROOM(); root.dataset.dial = dialOpen ? 'open' : 'closed'; if (!dialOpen) quickOpen = false;
     renderLayer(); placeFab(); renderFab();
   }
   function renderLayer() {   // user: "버튼 밑에는 오늘 학습 플로우와 meaning first 활동들이 밑에서 레이어 팝업형태로 올라오게"
@@ -612,16 +625,15 @@
     const on = el.querySelector('.b-card.is-on'); if (on) { const box = on.parentElement; box.scrollLeft = on.offsetLeft - box.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
     const sec = el.querySelector('.b-lysec.is-on'); if (sec) sec.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
-  function placePop(pop, btn) {   // classroom: menus rise from the bottom edge over the menu bar, in line with their button (desk layout: under the button)
+  function placePop(pop) {   // classroom: menus rise from the bottom edge, centred (Settings / Quick open them; no menu bar) — desk layout: under the button
     if (!CLASSROOM()) return false;
-    const r = btn.getBoundingClientRect();
-    pop.style.top = 'auto'; pop.style.right = 'auto'; pop.style.bottom = '12px'; pop.style.left = Math.max(12, r.left) + 'px';
+    pop.style.top = 'auto'; pop.style.right = 'auto'; pop.style.bottom = '12px'; pop.style.left = '12px';
     return true;
   }
-  function clampPop(pop) {   // classroom: keep it on screen (it scrolls inside when taller than the screen)
+  function clampPop(pop) {   // classroom: centred, on screen (it scrolls inside when taller than the screen)
     if (!CLASSROOM()) return;
     pop.style.top = 'auto'; pop.style.bottom = '12px';
-    pop.style.left = Math.max(12, Math.min(parseFloat(pop.style.left) || 12, innerWidth - pop.offsetWidth - 12)) + 'px';
+    pop.style.left = Math.max(12, Math.round((innerWidth - pop.offsetWidth) / 2)) + 'px';
   }
   function placeFab() {   // the pen lives inside the 16:10 frame (user: "판서 버튼은 가운데 화면에 포함"): bottom-right, on the frame's own 24 px margin; the video bar stops short of it
     const wrap = $('#stagewrap'), st = $('#stage'), fab = $('#fab'); if (!wrap || !st || !fab) return;
@@ -686,13 +698,22 @@
   /* ---------- the one button moves (user: "한개 버튼만 이동도 가능하게") ----------
      Press and move more than 6 px (10 px by finger) = drag; a press that stays put is still a click. The centre is saved as a
      fraction of the board (pondc-pos), so it holds on any window size; Display › Button › Reset position puts it back. */
-  function layoutFan() {   // Menu · Guide · Pen on the half disc above the button (Naver's green dot), kept on the board
+  function layoutFan() {   // Settings · Quick · Guide on the half disc above the button (Naver's green dot); Quick's round buttons on a ring just outside it
     const items = $('#dialItems'); if (!items || items.hidden || !fanGeo) return;
-    const { cx, cy, th, x0, x1, y0, y1 } = fanGeo, R = 112, STEP = 60 * Math.PI / 180;
-    [...items.children].forEach((b, i) => {
-      const a = th + (i - 1) * STEP, x = Math.min(Math.max(cx + R * Math.cos(a), x0), x1), y = Math.min(Math.max(cy + R * Math.sin(a), y0), y1);
-      b.style.setProperty('--dx', (x - cx).toFixed(1) + 'px'); b.style.setProperty('--dy', (y - cy).toFixed(1) + 'px'); b.style.setProperty('--i', i);
-    });
+    const { cx, cy, th, x0, x1, y0, y1 } = fanGeo, R = 112, STEP = 60 * Math.PI / 180, D = Math.PI / 180;
+    const put = (b, x, y, i) => { x = Math.min(Math.max(x, x0), x1); y = Math.min(Math.max(y, y0), y1); b.style.setProperty('--dx', (x - cx).toFixed(1) + 'px'); b.style.setProperty('--dy', (y - cy).toFixed(1) + 'px'); b.style.setProperty('--i', i); };
+    [...items.querySelectorAll('.b-dialitem')].forEach((b, i) => { const a = th + (i - 1) * STEP; put(b, cx + R * Math.cos(a), cy + R * Math.sin(a), i); });
+    const q = [...items.querySelectorAll('.b-qitem')], n = q.length; if (!n) return;
+    const QR = 224, room = cy - y0;   // the ring follows the half disc (176) + 14 + half a button (34) — user: "반원 위에 shape을 따라"
+    let ang;
+    if (room >= QR) {   // the whole ring: -165° … -15°, the four 'students see' a little apart from Share · Pen
+      const w = q.map((b, i) => (i === 0 ? 0 : b.dataset.b !== 'scene' && q[i - 1].dataset.b === 'scene' ? 1.4 : 1)), tot = w.reduce((a, v) => a + v, 0); let acc = 0;
+      ang = w.map(v => { acc += v; return (-165 + 150 * acc / tot) * D; });
+    } else {   // a short screen has no room above the disc: the ring splits, half on each side of it, under the top of the screen
+      const lo = 10 * D, hi = Math.max(lo, Math.asin(Math.min(1, Math.max(0, room) / QR))), h = Math.ceil(n / 2), st = h > 1 ? (hi - lo) / (h - 1) : 0;
+      ang = q.map((_, i) => (i < h ? -Math.PI + lo + i * st : -(hi - (i - h) * st)));
+    }
+    q.forEach((b, i) => put(b, cx + QR * Math.cos(ang[i]), cy + QR * Math.sin(ang[i]), i));
   }
 
   /* ---------- ‹ › beside the one button: back / next at any time, finished or not (user: "가운데 버튼 옆으로 좌우 이동할수
@@ -966,12 +987,12 @@
   function renderDisplay() {
     const opt = (k, v, label) => `<button type="button" class="b-opt" data-b="layout" data-k="${k}" data-v="${v}" aria-pressed="${root.dataset[k] === v}"><span class="b-thumb b-thumb--${k}-${v}" aria-hidden="true"><i class="t"></i><i class="s"></i><i class="d"></i><i class="n"></i></span><b>${label}</b></button>`;
     const col = ([v, label, frame, board, act]) => `<button type="button" class="b-opt" data-b="theme" data-v="${v}" aria-pressed="${root.dataset.theme === v}"><span class="b-thumb b-thumb--color" style="--f:${frame};--st:${board};--a:${act}" aria-hidden="true"><i class="s"></i><i class="a"></i></span><b>${label}</b></button>`;
-    $('#displayPop').innerHTML = `<div class="b-pophead"><h3>Display</h3><p>Arrange the dashboard your way — saved on this device.${CLASSROOM() ? '' : ' The student screen stays 16:10 (1280 × 800).'}</p></div>
+    $('#displayPop').innerHTML = `<div class="b-pophead"><h3>${CLASSROOM() ? 'Settings' : 'Display'}</h3><p>Arrange the dashboard your way — saved on this device.${CLASSROOM() ? '' : ' The student screen stays 16:10 (1280 × 800).'}</p></div>
       <section class="b-dsec"><h4>Screen</h4><div class="b-opts">${LAYOUT.screen.map(([v, l]) => opt('screen', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>${CLASSROOM() ? 'Teacher guide' : 'Controls'}</h4><div class="b-opts">${LAYOUT.controls.map(([v, l]) => opt('controls', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>Teacher notes</h4><div class="b-opts">${LAYOUT.notes.map(([v, l]) => opt('notes', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>Color</h4><div class="b-opts b-opts--color">${THEMES.map(col).join('')}</div></section>
-      ${CLASSROOM() ? `<section class="b-dsec"><h4>Button</h4><button type="button" class="b-sbtn b-dreset" data-b="posreset" title="The Menu · Guide · Pen button back to the middle of the bottom edge" ${pos.fab ? '' : 'disabled'}>${ic('rotate-ccw')}Reset position</button></section>` : ''}`;
+      ${CLASSROOM() ? `<section class="b-dsec"><h4>Button</h4><button type="button" class="b-sbtn b-dreset" data-b="posreset" title="The one button back to the middle of the bottom edge" ${pos.fab ? '' : 'disabled'}>${ic('rotate-ccw')}Reset position</button></section>` : ''}`;
   }
   function refreshDisplay() { if ($('#displayPop').matches(':popover-open')) renderDisplay(); }
 
@@ -1005,7 +1026,7 @@
     b.innerHTML = `${live ? '<i class="b-live" aria-hidden="true"></i>' : ''}${on ? (hasScreen() ? ic('monitor') : '') + (hasTablets() ? ic('tablet') : '') : ic('cast')}<span>${live ? 'Sharing' : 'Share'}</span>`;
     const to = [hasScreen() && 'the classroom screen', hasTablets() && 'student tablets (preview)'].filter(Boolean).join(' and ');
     b.title = on ? `Sharing to ${to} (S)` : 'Share with students (S)'; b.setAttribute('aria-label', on ? `Sharing to ${to}` : 'Share with students');
-    fitTop();
+    fitTop(); if (dialOpen) renderFab();
   }
   function openStudent() { const u = new URL(location.href); u.search = ''; u.hash = ''; u.searchParams.set('view', 'student'); window.open(u.href, 'pondc-student', 'popup,width=1280,height=800'); }
   function stopScreen() { if (CH) CH.postMessage({ type: 'stop' }); lastPing = 0; setLive(false); }
@@ -1075,13 +1096,15 @@
       case 'shareopen': openStudent(); break;
       case 'shareto': if (v === shareTo && hasScreen()) openStudent(); else setShareTo(v); break;
       case 'sharestop': setShareTo('none'); break;
-      case 'dmenu': setDial(false); setMenu(!menuOpen); break;   // the one button's Menu · Guide · Pen
+      case 'dset': setDial(false); $('#displayPop').showPopover(); break;   // Settings = the template (the Display popover), from the bottom
+      case 'dquick': quickOpen = !quickOpen; renderFab(); break;   // Quick: the ring of round buttons around the half disc
+      case 'qshare': setDial(false); $('#sharePop').showPopover(); break;
       case 'dguide': setDial(false); setGuide(!guideOpen); break;
       case 'dpen': setDial(false); if (menuOpen) setMenu(false); if (!FP.ink.state().on) FP.ink.toggle(); setPal(true); break;   // Pen = drawing on now, the tools at hand
       case 'posreset': pos = {}; put('pondc-pos', pos); placeFab(); renderDisplay(); break;
     }
     if (menuOpen && ['go', 'extra', 'close', 'mapsec', 'mapopen', 'scene'].includes(a) && !t.closest('.b-dock, .b-sheet, .b-npanel')) setMenu(false);   // picked: the class sees it
-    if (dialOpen && (a === 'go' || a === 'extra')) setDial(false);   // picked in the layer: the class sees it
+    if (dialOpen && (a === 'go' || a === 'extra' || a === 'scene')) setDial(false);   // picked in the layer or the Quick ring: the class sees it
   });
   $('#fabBtn').addEventListener('click', () => {   // classroom: the one button opens Menu · Guide · Pen, or closes what is open
     if (!CLASSROOM()) { setPal(!palOpen); return; }
@@ -1135,8 +1158,8 @@
       if (k === 'b' || k === '.') setScene('pause');
       if (k === 't') setScene(scene === 'timer' ? 'lesson' : 'timer');
       if (k === 'p') setScene(scene === 'pick' ? 'lesson' : 'pick');
-      if (k === 'a') { if (CLASSROOM() && !menuOpen) setMenu(true); $('#extrasPop').togglePopover(); }
-      if (k === 's') { if (CLASSROOM() && !menuOpen) setMenu(true); $('#sharePop').togglePopover(); }
+      if (k === 'a') $('#extrasPop').togglePopover();   // classroom: straight from the bottom (no menu bar)
+      if (k === 's') $('#sharePop').togglePopover();
       if (k === 'g' && CLASSROOM()) setGuide(!guideOpen);
       if (k === 'c') cycleTheme();
       if (k === 'k' && curMedia()) mediaCmd('mtoggle');

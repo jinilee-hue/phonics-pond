@@ -872,6 +872,16 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-dialitem.is-on{background:var(--acc);color:var(--acc-ink)}
 .b-dialitem.is-on .i{color:var(--acc-ink)}
 .b-dialitem .b-fabn{top:6px;right:8px}
+/* Quick: round buttons on a ring just outside the half disc (user: "반원 위에 shape을 따라 … 원 버튼들로 나란히"): Lesson · Timer · Pick ·
+   Pause (what students see) · Share · Pen; --dx/--dy from layoutFan() */
+.b-qitem{position:absolute;left:-34px;top:-34px;display:none;justify-items:center;align-content:center;gap:2px;width:68px;height:68px;padding:0;border-radius:50%;border:0;background:var(--d1);color:var(--tx);font-size:11.5px;font-weight:800;box-shadow:0 12px 28px -12px rgba(0,0,0,.65);transform:translate(var(--dx,0px),var(--dy,0px));animation:b-fan .26s cubic-bezier(.2,.9,.3,1.2) calc(var(--i,0) * 30ms) both}
+.b-dialitems.is-quick .b-qitem{display:grid}
+.b-qitem .i{width:24px;height:24px;color:var(--acc-text)}
+.b-qitem:hover{background:var(--d2)}
+.b-qitem.is-on{background:var(--acc);color:var(--acc-ink)}
+.b-qitem.is-on .i{color:var(--acc-ink)}
+.b-qitem .b-live{position:absolute;top:8px;right:12px;width:9px;height:9px}
+.b-qitem .b-fabn{top:0;right:0}
 /* open: the board dims and a layer rises under the button — today's flow (sections, activities) and Meaning First */
 :root[data-dial="open"] .b-fab{z-index:48}
 :root[data-screen="full"][data-dial="open"] .b-stagewrap{z-index:49}   /* (a fixed box is its own layer: lift the whole board — dim, layer, button — over an open guide or notes panel) */
@@ -967,7 +977,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 :root[data-screen="full"][data-view="teacher"] .b-fabside{width:var(--fab-sd,52px);height:var(--fab-sd,52px)}
 :root[data-screen="full"][data-view="teacher"] .b-fabside .i{width:calc(var(--fab-sd,52px) * .5);height:calc(var(--fab-sd,52px) * .5)}
 :root[data-dial="open"] .b-fabside{visibility:hidden}   /* the open menu has the flow cards */
-@media (prefers-reduced-motion:reduce){.b-dialitem{animation:none}}
+@media (prefers-reduced-motion:reduce){.b-dialitem,.b-qitem{animation:none}}
 :root[data-screen="full"] .b-fabbtn{touch-action:none;-webkit-user-select:none;user-select:none}   /* a finger drag moves the button instead of scrolling */
 :root.is-moving,:root.is-moving *{cursor:grabbing!important;-webkit-user-select:none;user-select:none}
 .b-dreset{border-color:var(--ctl-line)}
