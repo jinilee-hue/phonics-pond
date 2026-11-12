@@ -921,7 +921,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-lysec.is-on::after{background:var(--sec-on,var(--acc-text))}
 :root[data-theme="blue"] .b-lysec{--sec-on:#FFFFFF}   /* the blue / pink accent text is too faint on their own layer colour */
 :root[data-theme="pink"] .b-lysec{--sec-on:var(--acc)}
-.b-lycards{display:flex;gap:10px;overflow-x:auto;scrollbar-width:thin;padding:3px 2px 6px}
+.b-lycards{display:flex;gap:10px;overflow-x:auto;scrollbar-width:thin;margin:-4px -4px 0;padding:7px 6px 6px}   /* room for the selected card's 4 px ring + the 2 px hover lift inside the scroll clip (user: "선들이 왼쪽과 상단이 짤리는"); the negative margin keeps the cards where they were */
 .b-layer .b-card{flex:1 1 0;min-width:max-content;max-width:236px;width:auto;min-height:0;grid-template-rows:auto auto;align-content:center;gap:4px;padding:9px 14px 10px;border-radius:14px}   /* share the row; two lines: kicker · minutes, title (user: "activity는 박스 높이를 줄일수") */
 .b-layer .b-card b{font-size:15.5px;white-space:nowrap}
 .b-layer .b-card,.b-layer .b-card:hover{border-color:transparent}   /* no grey line, the fill as it was (user: "activity 박스 기본은 회색 라인없이") */
