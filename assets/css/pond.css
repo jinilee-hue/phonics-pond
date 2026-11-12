@@ -1082,17 +1082,45 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 :root.is-themefade::view-transition-old(root),:root.is-themefade::view-transition-new(root){animation-duration:.3s}
 @media (prefers-reduced-motion:reduce){.b-layer .b-card.is-on.is-new,.b-rchip.is-on.is-new,.b-opt[aria-pressed="true"].is-new,.b-layer .b-xi.is-on.is-new::after,.b-fabside.is-nope{animation:none}:root.is-moving .b-fabbtn{transform:none}}
 
-/* ---------- the lesson's title picture (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작") ---------- */
-.b-cover{position:absolute;inset:0;z-index:15;background:#CFE9F8;animation:b-fade .35s both}   /* over the board (media / games 10), under the class tools (20) */
+/* ---------- the lesson's title page (user: "… 대문 …", "배경이미지는 별도로 줄테니까 lessen1 대문 최대한 비슷하게") ----------
+   the background fills the board like object-fit: cover; .b-cvui is that same picture box (1024 × 572 grid, --u = one picture px),
+   nudged in only when a narrow screen would crop the words */
+.b-cover{position:absolute;inset:0;z-index:15;overflow:hidden;container-type:size;background:#8BD4FA;animation:b-fade .35s both}   /* over the board (media / games 10), under the class tools (20) */
 .b-cover[hidden]{display:none}
-.b-cover svg{display:block;width:100%;height:100%}
-.b-cvbtn{cursor:pointer;outline:none;transform-box:view-box;transition:transform .12s ease-out,filter .12s}
-.b-cvhit{fill:transparent}
-@media (hover:hover){.b-cvbtn:hover{transform:scale(1.04);filter:drop-shadow(0 6px 10px rgba(20,40,80,.28))}}
-.b-cvbtn:active{transform:scale(1.08);filter:drop-shadow(0 10px 16px rgba(20,40,80,.32))}   /* the button's own pixels pop (a copy over the picture) */
-.b-cvbtn:focus-visible .b-cvhit{stroke:#FFFFFF;stroke-width:5}
-.b-cvbtn[data-b="coverstart"]{animation:b-cvhello 4s ease-in-out .8s infinite}   /* a soft "tap me" */
-@keyframes b-cvhello{0%,72%,100%{transform:none}80%{transform:scale(1.09)}88%{transform:scale(.98)}}
+.b-cvbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.b-cvui{--F:max(100cqw,179.021cqh);--u:calc(var(--F) / 1024);position:absolute;width:var(--F);height:calc(var(--F) * .558594);
+  left:max(calc((100cqw - var(--F)) / 2),calc(2.5cqw - var(--u) * 77));top:max(calc((100cqh - var(--F) * .558594) / 2),calc(2.5cqh - var(--u) * 86));
+  font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;pointer-events:none}
+.b-cvui>*{position:absolute;margin:0;white-space:nowrap;line-height:1}
+.b-cvdefs{position:absolute;width:0;height:0;overflow:hidden}
+.b-cvkick{left:calc(var(--u) * 75.5);top:calc(var(--u) * 83.6);font-weight:820;font-size:calc(var(--u) * 28.3);letter-spacing:-.014em;color:#34436D;
+  filter:url(#cvClayS) drop-shadow(0 calc(var(--u) * 1.2) 0 rgba(25,40,85,.38)) drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 4) rgba(30,90,150,.22))}   /* clay: lit from the top left, a dark lower lip, a soft shadow */
+.b-cvtitle{left:calc(var(--u) * 74);top:calc(var(--u) * 123.5);font-weight:850;font-size:calc(var(--u) * 69);letter-spacing:-.0176em;color:#35446F;
+  filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 2) 0 #27335D) drop-shadow(0 calc(var(--u) * 5) calc(var(--u) * 5) rgba(25,75,135,.26))}
+.b-cvletter{left:calc(var(--u) * 78);top:calc(var(--u) * 212);width:calc(var(--u) * 172);height:calc(var(--u) * 87);box-sizing:border-box;padding:calc(var(--u) * 6) calc(var(--u) * 4) 0 0;display:grid;place-items:center;isolation:isolate;border-radius:calc(var(--u) * 17);
+  background:#FBD02E linear-gradient(180deg,#FFE35E 0%,#FDD535 30%,#FACB27 70%,#F1BC1C 100%);
+  box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.75),inset calc(var(--u) * 2) 0 calc(var(--u) * 3) rgba(255,255,255,.3),inset 0 calc(var(--u) * -5) calc(var(--u) * 5) rgba(205,128,0,.5),0 calc(var(--u) * 5) 0 #C08714,0 0 calc(var(--u) * 3) rgba(150,110,10,.25),0 calc(var(--u) * 7) calc(var(--u) * 8) rgba(110,80,10,.3)}
+.b-cvletter span,.b-cvletter{font-weight:900;font-size:calc(var(--u) * 67.7);letter-spacing:-.01em;color:#2E3D6A}
+.b-cvletter::before{content:"";position:absolute;z-index:-1;inset:calc(var(--u) * 10);border-radius:calc(var(--u) * 10);
+  background:linear-gradient(180deg,#EDB91E 0%,#F9CF30 22%,#FDD83A 100%);
+  box-shadow:inset 0 0 0 calc(var(--u) * 1.6) rgba(188,122,4,.72),inset 0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(165,100,0,.55),0 calc(var(--u) * 1.8) 0 rgba(255,255,255,.75),0 calc(var(--u) * -1.2) 0 rgba(196,128,6,.35)}   /* the framed panel sits a step lower inside the rim */
+.b-cvletter{text-shadow:none}
+.b-cvletter>b{display:block;font-weight:inherit;filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 1.6) 0 #222E57)}
+.b-cvstart,.b-cvsay{display:grid;place-items:center;padding:0;border:0;cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;transition:transform .12s ease-out,box-shadow .12s ease-out}
+.b-cvstart{left:calc(var(--u) * 268);top:calc(var(--u) * 225);width:calc(var(--u) * 153);height:calc(var(--u) * 63);border-radius:calc(var(--u) * 16);
+  background:#33467A linear-gradient(180deg,#6676A0 0%,#45577F 9%,#36497A 36%,#2F4373 80%,#293C6B 100%);
+  box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.26),inset 0 calc(var(--u) * -5) calc(var(--u) * 6) rgba(5,15,45,.45),0 calc(var(--u) * 3.5) 0 #1A2A4E,0 calc(var(--u) * 5) calc(var(--u) * 6) rgba(14,42,80,.34);
+  color:#FFFFFF;font-family:inherit;font-weight:780;font-size:calc(var(--u) * 28.6);letter-spacing:-.012em;text-shadow:0 calc(var(--u) * 1.4) 0 rgba(5,15,45,.4);
+  animation:b-cvhello 4s ease-in-out .8s infinite}   /* a soft "tap me" */
+.b-cvsay{left:calc(var(--u) * 434);top:calc(var(--u) * 225);width:calc(var(--u) * 64);height:calc(var(--u) * 64);border-radius:calc(var(--u) * 16);
+  background:#F1F1F1 linear-gradient(180deg,#FFFFFF 0%,#F6F6F6 35%,#ECECEC 75%,#E2E2E2 100%);
+  box-shadow:inset 0 calc(var(--u) * 2) calc(var(--u) * 1) #FFFFFF,inset 0 calc(var(--u) * -3) calc(var(--u) * 4) rgba(0,0,0,.08),0 calc(var(--u) * 3) 0 #C6CCD2,0 calc(var(--u) * 5) calc(var(--u) * 6) rgba(30,90,140,.24)}
+.b-cvsay svg{width:calc(var(--u) * 42);height:calc(var(--u) * 31);margin:calc(var(--u) * 1) 0 0 calc(var(--u) * 1)}
+@keyframes b-cvhello{0%,72%,100%{scale:1}80%{scale:1.07}88%{scale:.985}}   /* (scale, so a press's transform still shows) */
+@media (hover:hover){.b-cvstart:hover,.b-cvsay:hover{transform:translateY(calc(var(--u) * -2))}}
+.b-cvstart:active{transform:translateY(calc(var(--u) * 3));box-shadow:inset 0 calc(var(--u) * 2) calc(var(--u) * 1) rgba(255,255,255,.18),inset 0 calc(var(--u) * -3) calc(var(--u) * 4) rgba(5,15,45,.38),0 calc(var(--u) * .5) 0 #1A2A4E,0 calc(var(--u) * 2) calc(var(--u) * 4) rgba(14,42,80,.3)}   /* a key going down */
+.b-cvsay:active{transform:translateY(calc(var(--u) * 2.5));box-shadow:inset 0 calc(var(--u) * 2) calc(var(--u) * 1) #FFFFFF,inset 0 calc(var(--u) * -3) calc(var(--u) * 4) rgba(0,0,0,.08),0 calc(var(--u) * .5) 0 #C6CCD2,0 calc(var(--u) * 2) calc(var(--u) * 4) rgba(30,90,140,.2)}
+.b-cvstart:focus-visible,.b-cvsay:focus-visible{outline:calc(var(--u) * 3) solid #FFFFFF;outline-offset:calc(var(--u) * 3)}
 .b-cover.is-out{animation:b-cvout .42s cubic-bezier(.4,0,.2,1) both;pointer-events:none}
 @keyframes b-cvout{to{opacity:0;transform:scale(1.06)}}
 /* ---------- Timer: a 3D alarm clock (user: "시계도 3d로") ---------- */
@@ -1203,7 +1231,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-opt--sfx{grid-auto-flow:column;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:8px 12px}   /* icon + word on one line: the row stays as low as the Button row */
 .b-opt--sfx .i{width:24px;height:24px}
 @media (prefers-reduced-motion:reduce){
-  .b-cover,.b-cvbtn[data-b="coverstart"],.b-tm[data-st="run"] .b-tbody,.b-tm.is-wind .b-tbody,.b-tm.is-wind .b-tshadow,.b-tm[data-st="paused"] .b-tbody,.b-tm.is-done .b-tbody,.b-tstars i,.b-tface .ey,.b-pkbub,.b-pkcard.is-spin b,.b-pkcard.is-pick.is-fresh .b-pkav,.b-pkcard.is-fresh .b-pkcap,.b-pkrain i,.b-spause .b-pspin,.b-spause .b-pbody,.b-spause .b-attn .pu,.b-spause .b-attn .hl,.b-spause .b-attn .eye,.b-spause .b-spreply,.b-tm.is-done .b-tnum{animation:none}
+  .b-cover,.b-cvstart,.b-tm[data-st="run"] .b-tbody,.b-tm.is-wind .b-tbody,.b-tm.is-wind .b-tshadow,.b-tm[data-st="paused"] .b-tbody,.b-tm.is-done .b-tbody,.b-tstars i,.b-tface .ey,.b-pkbub,.b-pkcard.is-spin b,.b-pkcard.is-pick.is-fresh .b-pkav,.b-pkcard.is-fresh .b-pkcap,.b-pkrain i,.b-spause .b-pspin,.b-spause .b-pbody,.b-spause .b-attn .pu,.b-spause .b-attn .hl,.b-spause .b-attn .eye,.b-spause .b-spreply,.b-tm.is-done .b-tnum{animation:none}
   .b-t3d{transition:none}
   .b-tzzz b{animation:none;opacity:.85}
   .b-tzzz b:nth-child(2){transform:translate(22px,-52px)}

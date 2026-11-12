@@ -119,18 +119,34 @@
       else if (kind === 'dingdong') { tone(784, 0, 1.0, 0.17); tone(659, 0.42, 1.3, 0.17); }
     } catch (e) { /* no audio */ }
   }
-  // the lesson's title picture (user: "lesson1에 대한 대문 이미지를 추가할거야. 수업시작을 누르면 시작하게"): over the board while the lesson
-  // waits at its very first step; its own buttons are in the picture — hotspots in image pixels, so they stay on them at any screen shape
-  const COVERS = { 1: { img: 'assets/covers/lesson-1.webp', w: 1024, h: 572, say: 'Unit 1, Lesson 1. M.', start: [268, 225, 153, 64, 20], speak: [434, 224, 65, 65, 16] } };   // 🔊 reads the title (user picked)
+  // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
+  // over the board while the lesson waits at its very first step. The picture is only the background; the words and the buttons are
+  // real ones, placed on the picture's own 1024 × 572 grid so they keep their spot on it at any screen shape
+  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.' } };   // 🔊 reads the title (user picked)
   let coverOn = false, coverOutT = 0;
   const atLessonStart = () => {   // where opening a lesson lands: Introduction · its first activity · step 1
     const st = FP.state(), fl = FP.flow(), intro = Math.max(0, FP.sections().findIndex(x => x.name === 'Introduction'));
     return !st.extra && st.sec === intro && st.step === 0 && !!fl.length && st.act === (fl.find(x => x.id === 'ls1') ? 'ls1' : fl[0].id);
   };
+  const CV_SPK = '<svg viewBox="0 0 42 31" aria-hidden="true"><defs><linearGradient id="cvSpk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#72B8F7"/><stop offset=".55" stop-color="#3F8DEB"/><stop offset="1" stop-color="#2A72DA"/></linearGradient></defs><path d="M4.2 10.2h5.6l8.3-6.7c1.6-1.3 3.9-.2 3.9 1.9v20.2c0 2.1-2.3 3.2-3.9 1.9l-8.3-6.7H4.2A3.2 3.2 0 0 1 1 17.6v-4.2a3.2 3.2 0 0 1 3.2-3.2z" fill="url(#cvSpk)"/><path d="M27.6 10.6a7.2 7.2 0 0 1 0 9.8M33.4 5.8a13.6 13.6 0 0 1 0 19.4" fill="none" stroke="url(#cvSpk)" stroke-width="4" stroke-linecap="round"/></svg>';
+  // clay lettering: the blurred glyph is a bump map lit from the top left — a low specular light shines on the upper edges only, a diffuse
+  // light shades the lower ones; the faces keep their colour (bl = bump blur, sc = bump height, sp = shine; all in picture px)
+  const CV_CLAY = (id, bl, sc, sp) => `<filter id="${id}" x="-3%" y="-12%" width="106%" height="130%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" data-b0="${bl}" stdDeviation="${bl}" result="b"/>`
+    + `<feSpecularLighting in="b" data-s0="${sc}" surfaceScale="${sc}" specularConstant=".95" specularExponent="22" lighting-color="#FFFFFF" result="sp"><feDistantLight azimuth="245" elevation="33"/></feSpecularLighting>`
+    + `<feComposite in="sp" in2="SourceAlpha" operator="in" result="spi"/><feComposite in="SourceGraphic" in2="spi" operator="arithmetic" k2="1" k3="${sp}" result="lit"/>`
+    + `<feDiffuseLighting in="b" data-s0="${sc}" surfaceScale="${sc}" diffuseConstant="1.14" lighting-color="#FFFFFF" result="df"><feDistantLight azimuth="245" elevation="58"/></feDiffuseLighting>`
+    + `<feComposite in="lit" in2="df" operator="arithmetic" k1="1" result="sh"/><feComposite in="sh" in2="SourceAlpha" operator="in"/></filter>`;
+  function fitCover() {   // the clay bump grows with the picture (one picture px = u CSS px)
+    const el = $('#cover'); if (!el || el.hidden || !el.clientWidth) return;
+    const u = Math.max(el.clientWidth / 1024, el.clientHeight / 572);
+    el.querySelectorAll('[data-b0]').forEach(f => f.setAttribute('stdDeviation', (+f.dataset.b0 * u).toFixed(2)));
+    el.querySelectorAll('[data-s0]').forEach(f => f.setAttribute('surfaceScale', (+f.dataset.s0 * u).toFixed(2)));
+  }
   function renderCover() {
     const el = $('#cover'); if (!el) return;
+    if (!el._ro) { el._ro = new ResizeObserver(fitCover); el._ro.observe(el); }
     const n = FP.lesson() && FP.lesson().n, cv = coverOn && COVERS[n];
-    if (!cv) {   // the lesson started: the picture lifts away
+    if (!cv) {   // the lesson started: the page lifts away
       if (el.hidden || el.classList.contains('is-out')) return;
       if (lowMotion()) { el.hidden = true; el.innerHTML = ''; return; }
       el.classList.add('is-out'); clearTimeout(coverOutT);
@@ -140,9 +156,8 @@
     clearTimeout(coverOutT); el.classList.remove('is-out');
     if (!el.hidden && el.dataset.n === String(n)) return;
     el.dataset.n = n;
-    const hot = (b, [x, y, w, h, r], label, id) => `<clipPath id="${id}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></clipPath><g class="b-cvbtn" data-b="${b}" role="button" tabindex="0" aria-label="${label}" style="transform-origin:${x + w / 2}px ${y + h / 2}px"><title>${label}</title><image href="${cv.img}" width="${cv.w}" height="${cv.h}" clip-path="url(#${id})"/><rect class="b-cvhit" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/></g>`;   // a copy of the button's own pixels pops on a press
-    el.innerHTML = `<svg viewBox="0 0 ${cv.w} ${cv.h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Lesson ${n}"><image href="${cv.img}" width="${cv.w}" height="${cv.h}"/>${STUDENT ? '' : hot('coverstart', cv.start, 'Start the lesson (→)', 'cvStart') + hot('coversay', cv.speak, 'Say the lesson title', 'cvSay')}</svg>`;
-    el.hidden = false;
+    el.innerHTML = `<svg class="b-cvdefs" width="0" height="0" aria-hidden="true">${CV_CLAY('cvClay', 2.2, 2.6, 0.5)}${CV_CLAY('cvClayS', 1.3, 0.9, 0.18)}</svg><img class="b-cvbg" src="${cv.bg}" alt="" draggable="false"><div class="b-cvui" lang="en"><p class="b-cvkick">${esc(cv.kicker)}</p><h2 class="b-cvtitle">${esc(cv.title)}</h2><span class="b-cvletter"><b>${esc(cv.letter)}</b></span>${STUDENT ? '' : `<button type="button" class="b-cvstart" data-b="coverstart" lang="ko" title="Start the lesson (→)">수업 시작</button><button type="button" class="b-cvsay" data-b="coversay" title="Say the lesson title" aria-label="Say the lesson title">${CV_SPK}</button>`}</div>`;   // the tablets: no buttons
+    el.hidden = false; fitCover();
   }
   // 8 · a real dice (user: "실제 3d 주사위를 돌리는 모션"): six white faces with pips; every 4 s it hops, tumbles and lands on another face —
   // the face comes from the clock, so the tablets roll and land alike
@@ -1304,11 +1319,9 @@
     a.classList.remove('is-nope'); void a.offsetWidth; a.classList.add('is-nope');
   }, true);
   function startLesson() { if (!coverOn) return; coverOn = false; renderCover(); broadcast(); }
-  addEventListener('keydown', e => {   // the cover: → / Space / PageDown (clickers) start the lesson at its first step — no step skipped; ← / PageUp wait; Enter / Space press a picture button
+  addEventListener('keydown', e => {   // the cover: → / Space / PageDown (clickers) start the lesson at its first step — no step skipped; ← / PageUp wait (Enter / Space on a focused button press it)
     if (!coverOn || e.metaKey || e.ctrlKey || e.altKey) return;
     const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
-    const hot = e.target.closest && e.target.closest('.b-cvbtn');
-    if (hot && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); hot.dispatchEvent(new MouseEvent('click', { bubbles: true })); return; }
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && tag !== 'button' && tag !== 'a')) { e.preventDefault(); e.stopPropagation(); startLesson(); return; }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); e.stopPropagation(); }
   }, true);
