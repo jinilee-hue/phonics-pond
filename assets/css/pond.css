@@ -886,6 +886,12 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-lyhead h3{display:flex;align-items:center;gap:8px;flex:none;margin:0;font-size:15px;font-weight:800}
 .b-lyhead h3 span{font-weight:600;color:var(--tx)}   /* (tx2 on the layer is too faint on Blue and Pink) */
 .b-lyhead h3 .i{width:17px;height:17px}
+.b-lyhead--lesson{gap:10px;margin-bottom:6px}
+.b-lyhead--lesson h3{font-size:22px;letter-spacing:-.01em}   /* the lesson is the header now (no "Today") */
+.b-lymap{position:relative;display:grid;place-items:center;flex:none;width:34px;height:34px;padding:0;border:0;border-radius:50%;background:var(--acc);color:var(--acc-ink);transition:transform .15s}   /* › unit / lesson picker (user: "노란색 원버튼") */
+.b-lymap::after{content:'';position:absolute;inset:-6px;border-radius:50%}   /* 46 px to touch */
+.b-lymap:hover{transform:scale(1.08)}
+.b-lymap .i{width:20px;height:20px;stroke-width:2.6}
 /* sections = tabs on their own row under the title (user: "section은 아래줄로", "라운드 박스를 빼고 활성화된 버튼 밑에 라인") */
 .b-lysecs{display:flex;gap:2px;min-width:0;overflow-x:auto;scrollbar-width:none;margin:0 0 12px;padding:0 2px;box-shadow:inset 0 -1px 0 color-mix(in srgb,var(--tx) 16%,transparent)}
 .b-lysec{position:relative;flex:none;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;height:46px;padding:0 16px;border:0;border-radius:0;background:transparent;color:var(--tx);font-size:19px;font-weight:600}   /* bigger (user: "section 명들 키워줘") */
@@ -918,6 +924,14 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-xthumb img{display:block;width:100%;height:100%;object-fit:cover}
 .b-xthumb .i{width:34px;height:34px}
 .b-layer .b-xi.is-soon .b-xthumb{background:var(--d3);color:var(--tx3)}
+@media (max-height:760px){   /* short screens: a lower layer, so the button and the half disc above it stay on the board */
+  .b-layer{gap:8px;padding-bottom:12px}
+  .b-lyhead--lesson h3{font-size:19px}
+  .b-lysec{height:40px}
+  .b-lysecs{margin-bottom:8px}
+  .b-layer .b-xi{gap:6px;padding:5px 5px 7px}
+  .b-xthumb{aspect-ratio:2/1}
+}
 /* in the middle of the board the board tools sit centred over the button in one wide strip (clear of the video's play button) */
 .b-fab.is-mid{align-items:center}
 .b-fab.is-mid .b-fabpal{position:absolute;left:50%;bottom:calc(100% + 12px);translate:calc(-50% + var(--pal-dx,0px)) 0;flex-direction:row;align-items:center;max-height:none;max-width:calc(100vw - 32px);overflow:auto hidden}

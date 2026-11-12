@@ -606,7 +606,7 @@
     const MF_ICON = { 'x-lmf': 'book-open', 'x-mfd': 'volume-2', 'x-mfh': 'pencil', 'x-mfi': 'file-text' };   // Meaning First: an icon each, no description (user); games = the gamepad
     const thumb = it => it.game && it.game.poster ? `<span class="b-xthumb"><img src="assets/games/${it.game.poster}-thumb.webp" alt="" loading="lazy" onerror="this.remove()"></span>` : `<span class="b-xthumb">${ic(MF_ICON[it.id] || 'layers')}</span>`;   // Meaning First = pictures: the game's thumbnail, else the item's icon (user picked thumbnails)
     const tile = it => `<button type="button" class="b-xi${it.soon ? ' is-soon' : ''}${xi && xi.id === it.id ? ' is-on' : ''}" data-b="extra" data-v="${it.id}">${thumb(it)}<b lang="en">${esc(it.label)}</b>${it.soon ? '<em>Soon</em>' : it.game ? '<span class="b-xgame">Game</span>' : hasVideo(it.id) ? `<span class="b-xvid">${ic('play')}Video</span>` : ''}</button>`;
-    el.innerHTML = `<div class="b-lyrow"><div class="b-lyhead"><h3>Today <span lang="en">Lesson ${L.n} ${esc(L.snd || '')}</span></h3></div><div class="b-lysecs" role="group" aria-label="Sections">${FP.sections().map(x => `<button type="button" class="b-lysec${x.on ? ' is-on' : ''}" data-b="sec" data-v="${x.i}" data-t="${esc(x.name)}" aria-pressed="${x.on}" lang="en">${esc(x.name)}</button>`).join('')}</div>
+    el.innerHTML = `<div class="b-lyrow"><div class="b-lyhead b-lyhead--lesson"><h3 lang="en">Lesson ${L.n} ${esc(L.snd || '')}</h3><button type="button" class="b-lymap" data-b="lessonmap" aria-label="Choose a unit and lesson" title="Choose a unit and lesson (M)">${ic('chevron-right')}</button></div><div class="b-lysecs" role="group" aria-label="Sections">${FP.sections().map(x => `<button type="button" class="b-lysec${x.on ? ' is-on' : ''}" data-b="sec" data-v="${x.i}" data-t="${esc(x.name)}" aria-pressed="${x.on}" lang="en">${esc(x.name)}</button>`).join('')}</div>
         <div class="b-lycards">${flow.map(card).join('')}</div></div>
       <div class="b-lyrow b-lyrow--mf"><div class="b-lyhead"><h3>${ic('layers')}Meaning First</h3></div><div class="b-lycards">${mfGroup.items.map(tile).join('')}</div></div>`;
     const on = el.querySelector('.b-card.is-on'); if (on) { const box = on.parentElement; box.scrollLeft = on.offsetLeft - box.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
@@ -1057,6 +1057,7 @@
       case 'mapsec': if (mapPick !== FP.lesson().n) FP.setLesson(mapPick); FP.setSection(+v); openMap(false); break;
       case 'mapopen': if (mapPick !== FP.lesson().n) FP.setLesson(mapPick); openMap(false); break;
       case 'mapclose': openMap(false); break;
+      case 'lessonmap': openMap(true); break;   // the menu layer's › : unit / lesson picker over the layer
       case 'theme': setTheme(v); break;
       case 'layout': setLayout(t.dataset.k, v); break;
       case 'scene': setScene(v); break;
