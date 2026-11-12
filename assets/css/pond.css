@@ -947,7 +947,8 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-layer .b-xi.is-soon .b-xthumb{color:#9AA1AD}
 /* a class tool on the board: its settings in the layer under the × (user: "timer설정하는 기능과 pick 기능 설정하는건 x 버튼 밑에");
    the board is only lightly dimmed so the clock / the pick card stay in view */
-:root[data-dialtool="timer"] .b-dim,:root[data-dialtool="pick"] .b-dim{background:rgba(8,10,14,.16)}
+:root[data-dialtool="timer"] .b-dim,:root[data-dialtool="pick"] .b-dim,:root[data-dialtool="pause"] .b-dim{background:rgba(8,10,14,.16)}
+.b-lytray--pause .b-lyhead{margin:0}   /* Eyes on me: one row — the header, then Lesson (· Resume) */
 .b-lyhead--tool{gap:16px;margin-bottom:12px}
 .b-lyhead--tool h3{gap:10px}
 .b-lyhead--tool h3 .i{width:24px;height:24px;color:var(--acc-text)}

@@ -492,7 +492,7 @@
     if (v !== 'lesson') pauseMedia();
     if (v === 'pick' && scene !== 'pick' && Date.now() - PK.t0 > 1500) { PK.name = ''; PK.seq = null; }   // a fresh "Who's next?" board
     scene = v;
-    renderScenes(); renderScene(); renderDock(); broadcast(); if (dialOpen) renderFab();
+    renderScenes(); renderScene(); renderDock(); broadcast(); if (dialOpen) { renderLayer(); placeFab(); renderFab(); }   // the layer follows the board (keys, the tablet preview)
   }
   const coreGuide = FP.guide;   // Meaning First › Games: what to say and do
   FP.guide = (...args) => {
@@ -616,8 +616,8 @@
   function renderLayer() {   // user: "버튼 밑에는 오늘 학습 플로우와 meaning first 활동들이 밑에서 레이어 팝업형태로 올라오게"
     const el = $('#layer'), dim = $('#dim'); if (!el || !dim) return;
     el.hidden = dim.hidden = !dialOpen; if (!dialOpen) { el.innerHTML = ''; root.dataset.dialtool = 'none'; return; }
-    const tool = scene === 'timer' || scene === 'pick' ? scene : 'none'; root.dataset.dialtool = tool;   // a class tool on the board: its settings under the × (user)
-    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : layerPick(); return; }
+    const tool = scene === 'timer' || scene === 'pick' || scene === 'pause' ? scene : 'none'; root.dataset.dialtool = tool;   // a class tool on the board: its settings under the × (user)
+    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : tool === 'pick' ? layerPick() : layerPause(); return; }
     const flow = FP.flow(), cur = FP.cur(), extra = FP.mode() === 'extra', L = FP.lesson(), xi = FP.extraInfo();
     const card = a => { const on = !extra && a.id === cur.id, done = !extra && a.index < cur.index;
       return `<button type="button" class="b-card${on ? ' is-on' : ''}${done ? ' is-done' : ''}" data-b="go" data-v="${a.id}"><small>${done ? ic('check') : ''}<span>${esc(a.kicker)}</span><span class="b-lymin">${planMin(a)} min</span></small><b lang="en">${esc(a.title)}</b></button>`; };   // kicker · minutes, then the title (the Prep/SB/Home tag said what the kicker says)
@@ -836,6 +836,11 @@
     return `<div class="b-lyrow"><div class="b-lyhead b-lyhead--lesson b-lyhead--tool"><h3>${ic('dices')}Pick a student</h3><span class="b-lystate">${notYet} of ${roster.length} still to go</span></div>
       <div class="b-lytray b-lytray--pick"><div class="b-roster" role="group" aria-label="Class list">${roster.map(n => `<button type="button" class="b-rchip${picked.has(n) ? ' is-done' : ''}${PK.name === n ? ' is-on' : ''}" data-b="pickone" data-v="${esc(n)}" title="Show ${esc(n)}"><i style="--c:${avColor(n)}">${initial(n)}</i><span lang="en">${esc(n)}</span></button>`).join('')}<button type="button" class="b-rchip b-rchip--edit" data-b="rosteredit">${ic('pencil')}<span>Edit list</span></button></div>
         <div class="b-pn">${back()}<button type="button" class="b-next" data-b="pickrand"><span><b>Pick at random</b><small>Everyone gets a turn</small></span>${ic('shuffle')}</button></div></div></div>`;
+  }
+  function layerPause() {   // the menu layer while "Eyes on me" is on the board: back to the lesson (user: "pause에서도 lesson 가는 버튼이 있어야하지 않아?"), or Resume the timer / pick it paused
+    const to = { timer: 'the timer', pick: 'the student pick' }[resumeTo];
+    return `<div class="b-lyrow"><div class="b-lytray b-lytray--pause"><div class="b-lyhead b-lyhead--lesson b-lyhead--tool"><h3>${ic('monitor-pause')}Eyes on me</h3><span class="b-lystate">${live ? 'The tablets are paused' : 'The student screen is paused'}</span></div>
+      <div class="b-pn">${back()}${to ? `<button type="button" class="b-next" data-b="scene" data-v="pause"><span><b>Resume</b><small>Back to ${to}</small></span>${ic('play')}</button>` : ''}</div></div></div>`;
   }
   function dockPause() {
     const to = { lesson: 'the lesson', timer: 'the timer', pick: 'the student pick' }[resumeTo] || 'the lesson';
@@ -1118,7 +1123,7 @@
       case 'posreset': pos = {}; put('pondc-pos', pos); placeFab(); renderDisplay(); break;
     }
     if (menuOpen && ['go', 'extra', 'close', 'mapsec', 'mapopen', 'scene'].includes(a) && !t.closest('.b-dock, .b-sheet, .b-npanel')) setMenu(false);   // picked: the class sees it
-    const toolSet = a === 'scene' && (v === 'timer' || v === 'pick') && scene === v;
+    const toolSet = a === 'scene' && (v === 'timer' || v === 'pick') && scene === v;   // Timer / Pick: their settings under the × at once; Pause closes the menu so the class sees "Eyes on me!" whole (its panel — Lesson · Resume — comes with the one button)
     if (dialOpen && toolSet) { quickOpen = false; renderLayer(); placeFab(); renderFab(); }   // Timer / Pick: their settings in the layer under the × (user)
     else if (dialOpen && (a === 'go' || a === 'extra' || a === 'scene')) setDial(false);   // picked in the layer or the Quick ring: the class sees it
     if (dialOpen && inLayer && (a === 'tset' || (a === 'tgo' && TM.run) || a === 'pickrand' || a === 'pickone')) setDial(false);   // started / picked: the class sees it
