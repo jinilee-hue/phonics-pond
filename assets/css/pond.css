@@ -1083,13 +1083,13 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 @media (prefers-reduced-motion:reduce){.b-layer .b-card.is-on.is-new,.b-rchip.is-on.is-new,.b-opt[aria-pressed="true"].is-new,.b-layer .b-xi.is-on.is-new::after,.b-fabside.is-nope{animation:none}:root.is-moving .b-fabbtn{transform:none}}
 
 /* ---------- the lesson's title page (user: "… 대문 …", "배경이미지는 별도로 줄테니까 lessen1 대문 최대한 비슷하게") ----------
-   the background fills the board like object-fit: cover; .b-cvui is that same picture box (1024 × 572 grid, --u = one picture px),
+   the background fills the board like object-fit: cover; .b-cvui is that same picture box (2752 × 1536 picture on a 1024-wide grid, --u = one grid px),
    nudged in only when a narrow screen would crop the words */
-.b-cover{position:absolute;inset:0;z-index:15;overflow:hidden;container-type:size;background:#8BD4FA;animation:b-fade .35s both}   /* over the board (media / games 10), under the class tools (20) */
+.b-cover{position:absolute;inset:0;z-index:15;overflow:hidden;container-type:size;background:#8FD3FC;animation:b-fade .35s both}   /* over the board (media / games 10), under the class tools (20) */
 .b-cover[hidden]{display:none}
 .b-cvbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none;pointer-events:none}
-.b-cvui{--F:max(100cqw,179.021cqh);--u:calc(var(--F) / 1024);position:absolute;width:var(--F);height:calc(var(--F) * .558594);
-  left:max(calc((100cqw - var(--F)) / 2),calc(2.5cqw - var(--u) * 77));top:max(calc((100cqh - var(--F) * .558594) / 2),calc(2.5cqh - var(--u) * 86));
+.b-cvui{--F:max(100cqw,179.1667cqh);--u:calc(var(--F) / 1024);position:absolute;width:var(--F);height:calc(var(--F) * .558140);
+  left:max(calc((100cqw - var(--F)) / 2),calc(2.5cqw - var(--u) * 77));top:max(calc((100cqh - var(--F) * .558140) / 2),calc(2.5cqh - var(--u) * 86));
   font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;pointer-events:none}
 .b-cvui>*{position:absolute;margin:0;white-space:nowrap;line-height:1}
 .b-cvdefs{position:absolute;width:0;height:0;overflow:hidden}

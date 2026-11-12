@@ -121,8 +121,8 @@
   }
   // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
   // over the board while the lesson waits at its very first step. The picture is only the background; the words and the buttons are
-  // real ones, placed on the picture's own 1024 × 572 grid so they keep their spot on it at any screen shape
-  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.' } };   // 🔊 reads the title (user picked)
+  // real ones, placed on the picture's own grid (1024 units wide, 2752 × 1536 picture) so they keep their spot on it at any screen shape
+  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.' } };   // 🔊 reads the title (user picked)
   let coverOn = false, coverOutT = 0;
   const atLessonStart = () => {   // where opening a lesson lands: Introduction · its first activity · step 1
     const st = FP.state(), fl = FP.flow(), intro = Math.max(0, FP.sections().findIndex(x => x.name === 'Introduction'));
