@@ -1062,3 +1062,22 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 /* 7 · the layer's content changes while open: the height glides, the new content rises in (JS) ("7번") */
 .b-layer.is-morph{overflow:hidden}
 @media (prefers-reduced-motion:reduce){:root[data-screen="full"] .b-pop:popover-open,.b-fabbtn > .b-fabin-x,.b-fabbtn > .b-fabin,.b-lysec.is-slide::after{animation:none}}
+/* 8 · Share: the white block slides over to the new choice ("8번") — a moving copy; the button's own fill comes back after */
+.b-sto{position:relative}
+.b-sto button{position:relative;z-index:1}
+.b-sto .b-stohl{position:absolute;z-index:0;border-radius:12px;background:var(--tx);pointer-events:none}
+.b-sto button.is-hlmove{background:transparent}
+/* 9 · a new selection's ring grows in ("9번") */
+.b-layer .b-card.is-on.is-new,.b-rchip.is-on.is-new,.b-opt[aria-pressed="true"].is-new{animation:b-selin .3s cubic-bezier(.2,.8,.2,1) both}
+.b-layer .b-xi.is-on.is-new::after{animation:b-selin-in .3s cubic-bezier(.2,.8,.2,1) both}
+@keyframes b-selin{from{box-shadow:0 0 0 0 var(--acc-soft);border-color:transparent}}
+@keyframes b-selin-in{from{box-shadow:inset 0 0 0 0 var(--acc-bar)}}
+/* 10 · dragging lifts the one button ("10번") */
+.b-fabbtn{transition:background .15s,color .15s,transform .15s,box-shadow .2s}
+:root.is-moving .b-fabbtn{transform:scale(1.06);box-shadow:0 26px 46px -12px rgba(0,0,0,.7)}
+/* 11 · ‹ › at an end: a tap shakes the arrow ("11번") */
+.b-fabside.is-nope{animation:b-nope .34s ease-in-out}
+@keyframes b-nope{20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+/* 12 · a theme change cross-fades ("12번") */
+:root.is-themefade::view-transition-old(root),:root.is-themefade::view-transition-new(root){animation-duration:.3s}
+@media (prefers-reduced-motion:reduce){.b-layer .b-card.is-on.is-new,.b-rchip.is-on.is-new,.b-opt[aria-pressed="true"].is-new,.b-layer .b-xi.is-on.is-new::after,.b-fabside.is-nope{animation:none}:root.is-moving .b-fabbtn{transform:none}}

@@ -448,10 +448,18 @@
   let menuOpen = false, guideOpen = false, dialOpen = false, quickOpen = false;   // classroom screen: the teacher guide and the one button's Settings · Quick · Guide (+ Quick's ring) stay hidden until asked for
   let layerOutT = 0, itemsOutT = 0, qoutT = 0, fabHtml = '', fabFace = '';   // motion: folding away, Quick folding, the one button's face
   const RM = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SEL_ON = '.b-card.is-on, .b-xi.is-on, .b-rchip.is-on, .b-opt[aria-pressed="true"]', selKey = e => [e.dataset.b, e.dataset.k, e.dataset.v].join(':');
+  const selKeys = box => new Set([...box.querySelectorAll(SEL_ON)].map(selKey));
+  const markNew = (box, prev) => { if (!RM()) box.querySelectorAll(SEL_ON).forEach(e => { if (!prev.has(selKey(e))) e.classList.add('is-new'); }); };   // a new selection's ring grows in (user: "9번")
   let fanGeo = null;   // classroom screen: where the one button's arc opens
   let pos = get('pondc-pos', {});   // where the teacher dragged the one button (classroom screen): centre as a fraction of the board
   pos = pos && typeof pos === 'object' && Array.isArray(pos.fab) ? { fab: pos.fab } : {};
 
+  function themeFade(v) {   // the colours cross-fade on a theme change (user: "12번")
+    if (!document.startViewTransition || RM() || FP.opts.viewTransitions === false || root.dataset.theme === v) { setTheme(v); return; }
+    root.classList.add('is-themefade');
+    const t = document.startViewTransition(() => setTheme(v)); t.finished.catch(() => {}).finally(() => root.classList.remove('is-themefade'));
+  }
   function setTheme(t) { applyTheme(t); put('fprk-bc-theme', root.dataset.theme); broadcast(); refreshDisplay(); }
   function cycleTheme() { const i = THEMES.findIndex(x => x[0] === root.dataset.theme); setTheme(THEMES[(i + 1) % THEMES.length][0]); }
 
@@ -561,8 +569,8 @@
     const tIcon = { pen: 'pen', hl: 'highlighter', er: 'eraser' }[cur] || 'pen';
     const b = $('#fabBtn'), dial = CLASSROOM(), shut = palOpen || (dial && (dialOpen || menuOpen));   // classroom: the one button closes what is open
     b.classList.toggle('is-ink', k.on && !shut); b.classList.toggle('is-open', shut);
-    b.setAttribute('aria-expanded', dial ? dialOpen || palOpen || menuOpen : palOpen); b.setAttribute('aria-label', dial ? 'Settings, quick tools and guide' : 'Board tools');
-    b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Guide · Quick · Settings · drawing is on (D) · drag to move' : 'Phonics POND — Guide · Quick · Settings · drag to move')
+    b.setAttribute('aria-expanded', dial ? dialOpen || palOpen || menuOpen : palOpen); b.setAttribute('aria-label', dial ? 'Guide, quick tools and display' : 'Board tools');
+    b.title = dial ? (palOpen ? 'Hide board tools' : menuOpen ? 'Close the menu (Esc)' : dialOpen ? 'Close' : k.on ? 'Phonics POND — Guide · Quick · Display · drawing is on (D) · drag to move' : 'Phonics POND — Guide · Quick · Display · drag to move')
       : palOpen ? 'Hide board tools' : k.on ? 'Board tools — drawing is on (D)' : 'Board tools (D = pen)';
     const face = dial ? '<svg class="b-fabmark" viewBox="0 0 64 64" aria-hidden="true"><use href="#pond-mark"/></svg>' : ic(k.on ? tIcon : 'pen');   // classroom: our symbol on the one button (user: "메뉴 표시 대신에 우리 심볼아이콘")
     const fh = shut ? ic('x') : `${face}${k.on && cur !== 'er' ? `<i class="b-fabdot" style="--c:${k.color}"></i>` : ''}${k.count && !k.on && !dial ? `<i class="b-fabn">${k.count}</i>` : ''}`;
@@ -587,7 +595,7 @@
         const want = [   // [class, action, value, icon, label, on, tip, live dot, count]
           ['b-dialitem', 'dguide', '', 'notebook-pen', 'Guide', guideOpen, 'Teacher guide — what to say and do (G)'],   // Guide · Quick · Settings (user: "셋팅과 가이드 메뉴 순서 바꿔줘")
           ['b-dialitem', 'dquick', '', 'zap', 'Quick', quickOpen, 'Quick — what students see, share, pen'],   // user: "pen버튼 자리에는 퀵 버튼으로"
-          ['b-dialitem', 'dset', '', 'settings', 'Settings', false, 'Settings — the template: guide position, notes, colour'],   // user: "menu 버튼은 설정으로"
+          ['b-dialitem', 'dset', '', 'palette', 'Display', false, 'Display — screen, guide position, notes, colour'],   // the template (user: "settings보다는 display가 나은거 같아 아이콘도 기존에 팔레트 형태가")
           ...SCENES.map(([v, i, l, t]) => ['b-qitem', 'scene', v, i, l, scene === v, t]),   // what students see
           ['b-qitem', 'qshare', '', shareIc, shareTo !== 'none' ? 'Sharing' : 'Share', shareTo !== 'none', shareTo !== 'none' ? 'Sharing — the share settings (S)' : 'Share with students (S)', live],
           ['b-qitem', 'dpen', '', 'pen', 'Pen', k.on, 'Pen — draw on the board, tools at hand (D)', false, k.count && !k.on ? k.count : 0]];
@@ -643,9 +651,10 @@
     clearTimeout(layerOutT); el.classList.remove('is-out'); dim.classList.remove('is-out'); root.classList.remove('is-dialout');   // (reopened while folding: it rises again)
     const was = !el.hidden, h0 = was ? el.getBoundingClientRect().height : 0, k0 = root.dataset.dialtool;   // a change while open morphs (user: "7번")
     const pOn = was ? el.querySelector('.b-lysec.is-on') : null, pR = pOn ? pOn.getBoundingClientRect() : null, pV = pOn ? pOn.dataset.v : null;   // the section line slides from here (user: "4번")
+    const selPrev = was ? selKeys(el) : new Set();   // opening: every selection is new
     el.hidden = dim.hidden = false;
     const tool = scene === 'timer' || scene === 'pick' ? scene : 'none'; root.dataset.dialtool = tool;   // a class tool on the board: its settings under the × (user); Pause has none (user: "아래 패널 열리는거만 빼줘") — the usual layer, Lesson on the Quick ring
-    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : layerPick(); morphLayer(el, was, h0, k0); return; }
+    if (tool !== 'none') { el.innerHTML = tool === 'timer' ? layerTimer() : layerPick(); markNew(el, selPrev); morphLayer(el, was, h0, k0); return; }
     const flow = FP.flow(), cur = FP.cur(), extra = FP.mode() === 'extra', L = FP.lesson(), xi = FP.extraInfo();
     const card = a => { const on = !extra && a.id === cur.id, done = !extra && a.index < cur.index;
       return `<button type="button" class="b-card${on ? ' is-on' : ''}${done ? ' is-done' : ''}" data-b="go" data-v="${a.id}"><small>${done ? ic('check') : ''}<span>${esc(a.kicker)}</span><span class="b-lymin">${planMin(a)} min</span></small><b lang="en">${esc(a.title)}</b></button>`; };   // kicker · minutes, then the title (the Prep/SB/Home tag said what the kicker says)
@@ -661,6 +670,7 @@
       const nR = sec.getBoundingClientRect();
       sec.style.setProperty('--ux', (pR.left - nR.left).toFixed(1) + 'px'); sec.style.setProperty('--us', ((pR.width - 24) / Math.max(1, nR.width - 24)).toFixed(3)); sec.classList.add('is-slide');
     }
+    markNew(el, selPrev);
     morphLayer(el, was, h0, k0);
   }
   function morphLayer(el, was, h0, k0) {   // changed while open: another kind of content rises in, the height glides (user: "7번"); placeFab rides on the final height
@@ -1046,10 +1056,11 @@
   }
 
   /* ---------- display: layout + colour ---------- */
-  function renderDisplay() {
+  function renderDisplay() { const pop = $('#displayPop'), prev = pop ? selKeys(pop) : new Set(); renderDisplay0(); if (pop) markNew(pop, prev); }   // 9: the new choice's ring grows in
+  function renderDisplay0() {
     const opt = (k, v, label) => `<button type="button" class="b-opt" data-b="layout" data-k="${k}" data-v="${v}" aria-pressed="${root.dataset[k] === v}"><span class="b-thumb b-thumb--${k}-${v}" aria-hidden="true"><i class="t"></i><i class="s"></i><i class="d"></i><i class="n"></i></span><b>${label}</b></button>`;
     const col = ([v, label, frame, board, act]) => `<button type="button" class="b-opt" data-b="theme" data-v="${v}" aria-pressed="${root.dataset.theme === v}"><span class="b-thumb b-thumb--color" style="--f:${frame};--st:${board};--a:${act}" aria-hidden="true"><i class="s"></i><i class="a"></i></span><b>${label}</b></button>`;
-    $('#displayPop').innerHTML = `<div class="b-pophead"><h3>${CLASSROOM() ? 'Settings' : 'Display'}</h3><p>Arrange the dashboard your way — saved on this device.${CLASSROOM() ? '' : ' The student screen stays 16:10 (1280 × 800).'}</p></div>
+    $('#displayPop').innerHTML = `<div class="b-pophead"><h3>Display</h3><p>Arrange the dashboard your way — saved on this device.${CLASSROOM() ? '' : ' The student screen stays 16:10 (1280 × 800).'}</p></div>
       <section class="b-dsec"><h4>Screen</h4><div class="b-opts">${LAYOUT.screen.map(([v, l]) => opt('screen', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>${CLASSROOM() ? 'Teacher guide' : 'Controls'}</h4><div class="b-opts">${LAYOUT.controls.map(([v, l]) => opt('controls', v, l)).join('')}</div></section>
       <section class="b-dsec"><h4>Teacher notes</h4><div class="b-opts">${LAYOUT.notes.map(([v, l]) => opt('notes', v, l)).join('')}</div></section>
@@ -1099,7 +1110,17 @@
     if (!hasScreen() && live) stopScreen();   // the tablet preview only shows the same screen
     renderShareBtn(); if ($('#sharePop').matches(':popover-open')) renderShare();
   }
-  function renderShare() {   // two choices for the students' tablets (user: "두개 버튼만 있으면돼")
+  function renderShare() {   // 8: the white block slides over to the new choice (user: "8번")
+    const pop = $('#sharePop'), was = pop.querySelector('.b-sto button[aria-pressed="true"]'), from = was ? [was.dataset.v, was.offsetLeft, was.offsetWidth] : null;
+    renderShare0();
+    const on = pop.querySelector('.b-sto button[aria-pressed="true"]');
+    if (!on || !from || from[0] === on.dataset.v || !pop.matches(':popover-open') || RM()) return;
+    const hl = document.createElement('i'); hl.className = 'b-stohl'; on.parentElement.prepend(hl);
+    Object.assign(hl.style, { left: on.offsetLeft + 'px', top: on.offsetTop + 'px', width: on.offsetWidth + 'px', height: on.offsetHeight + 'px' });
+    on.classList.add('is-hlmove');
+    hl.animate([{ transform: `translateX(${from[1] - on.offsetLeft}px)`, width: from[2] + 'px' }, { transform: 'none', width: on.offsetWidth + 'px' }], { duration: 240, easing: 'cubic-bezier(.2,.8,.2,1)' }).onfinish = () => { hl.remove(); on.classList.remove('is-hlmove'); };
+  }
+  function renderShare0() {   // two choices for the students' tablets (user: "두개 버튼만 있으면돼")
     const opt = (v, icons, label, sub, tip) => `<button type="button" data-b="shareto" data-v="${v}" aria-pressed="${shareTo === v}" title="${tip}"><span class="b-stic">${icons}</span><b>${label}</b><small>${sub}</small></button>`;
     const join = `<div class="b-scode"><span class="b-sqr">${ic('qr-code')}</span><div><small>Class code</small><b class="num">${TCODE}</b><span>0 joined · preview — tablets can join once the class server is ready</span></div></div>`;
     $('#sharePop').innerHTML = `<div class="b-pophead"><h3>Share with students</h3><p>On the students’ tablets — never your notes or controls.</p></div>
@@ -1137,7 +1158,7 @@
       case 'mapopen': if (mapPick !== FP.lesson().n) FP.setLesson(mapPick); openMap(false); break;
       case 'mapclose': openMap(false); break;
       case 'lessonmap': openMap(true); break;   // the menu layer's › : unit / lesson picker over the layer
-      case 'theme': setTheme(v); break;
+      case 'theme': themeFade(v); break;
       case 'layout': setLayout(t.dataset.k, v); break;
       case 'scene': setScene(v); break;
       case 'tset': case 'tgo': case 'tadd': case 'treset': timerAct(a, +v || 0); break;
@@ -1168,6 +1189,10 @@
     if (dialOpen && inLayer && (a === 'tset' || (a === 'tgo' && TM.run) || a === 'pickrand' || a === 'pickone')) setDial(false);   // started / picked: the class sees it
     else if (dialOpen && inLayer && root.dataset.dialtool !== 'none') placeFab();   // the tool layer may have changed height
   });
+  document.addEventListener('pointerdown', e => {   // ‹ › at an end: a tap shakes the arrow — that's the end (user: "11번")
+    const a = e.target.closest && e.target.closest('.b-fabside'); if (!a || !a.disabled || RM()) return;
+    a.classList.remove('is-nope'); void a.offsetWidth; a.classList.add('is-nope');
+  }, true);
   $('#gdim').addEventListener('click', () => { if (notesOpen || flowOpen) { notesOpen = flowOpen = false; renderFlow(); renderNotes(); renderDock(); } setGuide(false); });   // the guide's sheets go with it
   $('#fabBtn').addEventListener('click', () => {   // classroom: the one button opens Menu · Guide · Pen, or closes what is open
     if (!CLASSROOM()) { setPal(!palOpen); return; }
