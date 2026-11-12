@@ -711,9 +711,8 @@
     const q = [...items.querySelectorAll('.b-qitem')], n = q.length; if (!n) return;
     const QR = 224, room = cy - y0;   // the ring follows the half disc (176) + 14 + half a button (34) — user: "반원 위에 shape을 따라"
     let ang;
-    if (room >= QR) {   // the whole ring: -165° … -15°, the four 'students see' a little apart from Share · Pen
-      const w = q.map((b, i) => (i === 0 ? 0 : b.dataset.b !== 'scene' && q[i - 1].dataset.b === 'scene' ? 1.4 : 1)), tot = w.reduce((a, v) => a + v, 0); let acc = 0;
-      ang = w.map(v => { acc += v; return (-165 + 150 * acc / tot) * D; });
+    if (room >= QR) {   // the whole ring: -165° … -15°, evenly spaced (user: "pause과 share 버튼 사이만 간격이 넓은데 버튼 사이 간격 동일하게")
+      ang = q.map((_, i) => (-165 + 150 * (n > 1 ? i / (n - 1) : 0.5)) * D);
     } else {   // a short screen has no room above the disc: the ring splits, half on each side of it, under the top of the screen
       const lo = 10 * D, hi = Math.max(lo, Math.asin(Math.min(1, Math.max(0, room) / QR))), h = Math.ceil(n / 2), st = h > 1 ? (hi - lo) / (h - 1) : 0;
       ang = q.map((_, i) => (i < h ? -Math.PI + lo + i * st : -(hi - (i - h) * st)));
