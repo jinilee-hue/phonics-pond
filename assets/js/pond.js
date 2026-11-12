@@ -602,11 +602,13 @@
     el.hidden = dim.hidden = !dialOpen; if (!dialOpen) { el.innerHTML = ''; return; }
     const flow = FP.flow(), cur = FP.cur(), extra = FP.mode() === 'extra', L = FP.lesson(), xi = FP.extraInfo();
     const card = a => { const on = !extra && a.id === cur.id, done = !extra && a.index < cur.index;
-      return `<button type="button" class="b-card${on ? ' is-on' : ''}${done ? ' is-done' : ''}" data-b="go" data-v="${a.id}"><small>${done ? ic('check') : ''}${esc(a.kicker)}</small><b lang="en">${esc(a.title)}</b><span class="b-cmeta"><em class="b-type b-type--${a.type}">${a.type === 'sb' ? 'SB' : a.type === 'home' ? 'Home' : 'Prep'}</em><span class="b-lymin">${planMin(a)} min</span></span></button>`; };
-    const tile = it => `<button type="button" class="b-xi${it.soon ? ' is-soon' : ''}${xi && xi.id === it.id ? ' is-on' : ''}" data-b="extra" data-v="${it.id}"><b lang="en">${esc(it.label)}</b><small lang="en">${esc(it.sub)}</small>${it.soon ? '<em>Soon</em>' : it.game ? `<span class="b-xgame">${ic('gamepad')}Game</span>` : hasVideo(it.id) ? `<span class="b-xvid">${ic('play')}Video</span>` : ''}</button>`;
-    el.innerHTML = `<div class="b-lyrow"><div class="b-lyhead"><h3>Today <span lang="en">Lesson ${L.n} ${esc(L.snd || '')}</span></h3><div class="b-lysecs" role="group" aria-label="Sections">${FP.sections().map(x => `<button type="button" class="b-lysec${x.on ? ' is-on' : ''}" data-b="sec" data-v="${x.i}" aria-pressed="${x.on}" lang="en">${esc(x.name)}</button>`).join('')}</div></div>
+      return `<button type="button" class="b-card${on ? ' is-on' : ''}${done ? ' is-done' : ''}" data-b="go" data-v="${a.id}"><small>${done ? ic('check') : ''}<span>${esc(a.kicker)}</span><span class="b-lymin">${planMin(a)} min</span></small><b lang="en">${esc(a.title)}</b></button>`; };   // kicker · minutes, then the title (the Prep/SB/Home tag said what the kicker says)
+    const MF_ICON = { 'x-lmf': 'book-open', 'x-mfd': 'volume-2', 'x-mfh': 'pencil', 'x-mfi': 'file-text' };   // Meaning First: an icon each, no description (user); games = the gamepad
+    const thumb = it => it.game && it.game.poster ? `<span class="b-xthumb"><img src="assets/games/${it.game.poster}-thumb.webp" alt="" loading="lazy" onerror="this.remove()"></span>` : `<span class="b-xthumb">${ic(MF_ICON[it.id] || 'layers')}</span>`;   // Meaning First = pictures: the game's thumbnail, else the item's icon (user picked thumbnails)
+    const tile = it => `<button type="button" class="b-xi${it.soon ? ' is-soon' : ''}${xi && xi.id === it.id ? ' is-on' : ''}" data-b="extra" data-v="${it.id}">${thumb(it)}<b lang="en">${esc(it.label)}</b>${it.soon ? '<em>Soon</em>' : it.game ? '<span class="b-xgame">Game</span>' : hasVideo(it.id) ? `<span class="b-xvid">${ic('play')}Video</span>` : ''}</button>`;
+    el.innerHTML = `<div class="b-lyrow"><div class="b-lyhead"><h3>Today <span lang="en">Lesson ${L.n} ${esc(L.snd || '')}</span></h3></div><div class="b-lysecs" role="group" aria-label="Sections">${FP.sections().map(x => `<button type="button" class="b-lysec${x.on ? ' is-on' : ''}" data-b="sec" data-v="${x.i}" data-t="${esc(x.name)}" aria-pressed="${x.on}" lang="en">${esc(x.name)}</button>`).join('')}</div>
         <div class="b-lycards">${flow.map(card).join('')}</div></div>
-      <div class="b-lyrow"><div class="b-lyhead"><h3>${ic('layers')}Meaning First</h3></div><div class="b-lycards">${mfGroup.items.map(tile).join('')}</div></div>`;
+      <div class="b-lyrow b-lyrow--mf"><div class="b-lyhead"><h3>${ic('layers')}Meaning First</h3></div><div class="b-lycards">${mfGroup.items.map(tile).join('')}</div></div>`;
     const on = el.querySelector('.b-card.is-on'); if (on) { const box = on.parentElement; box.scrollLeft = on.offsetLeft - box.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
     const sec = el.querySelector('.b-lysec.is-on'); if (sec) sec.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
@@ -924,12 +926,12 @@
   function renderMap() {
     const D = FP.data, L = FP.lesson(), pick = mapPick || L.n, P = D.lessons[pick], lab = (P.lab || '').split(' · ');
     const secs = P.secs || [], curSec = FP.state().sec;
-    $('#map').innerHTML = `<div class="b-maphead"><div><h2>Lesson map</h2><p>From Phonics to Reading · Level K</p></div><button type="button" class="b-x b-x--lg" data-b="mapclose" aria-label="Close lesson map">${ic('x')}</button></div>
+    $('#map').innerHTML = `<div class="b-mapsheet"><div class="b-maphead"><div><h2>Lesson map</h2><p>From Phonics to Reading · Level K</p></div><button type="button" class="b-x b-x--lg" data-b="mapclose" aria-label="Close lesson map">${ic('x')}</button></div>
       <div class="b-mapbody"><div class="b-units">${D.units.map(u => `<section class="b-ucol"><h3><b>Unit ${u.n}</b><span>${esc(u.theme)}</span></h3>${u.lessons.map(n => { const d = D.lessons[n], lb = (d.lab || '').split(' · ');
         return `<button type="button" class="b-ltile${n === pick ? ' is-pick' : ''}${n === L.n ? ' is-cur' : ''}" data-b="mappick" data-v="${n}"><span class="b-ltl${(lb[0] || d.ltr).length > 3 ? ' is-long' : ''}" lang="en">${esc(lb[0] || d.ltr)}</span><span class="b-ltinfo"><b>Lesson ${n}</b><small lang="en">${esc(d.snd)}${lb[1] ? ' · ' + esc(lb[1]) : ''}</small></span>${n === L.n ? '<em>Now</em>' : ''}</button>`; }).join('')}</section>`).join('')}</div>
       <aside class="b-preview"><span class="b-pvl" lang="en">${esc(P.key)}</span><h3>Lesson ${pick} <span lang="en">${esc(P.snd)}</span></h3><p>Unit ${P.unit || 1} · ${esc(FP.unitTheme(P.unit || 1))} · ${esc(P.day)} · SB p${P.sb}${lab[1] ? ` · <span lang="en">${esc(lab[1])}</span>` : ''}</p>
         <ol class="b-secs">${secs.map((s, i) => `<li><button type="button" data-b="mapsec" data-v="${i}" class="${pick === L.n && i === curSec ? 'is-cur' : ''}"><span>${i + 1}</span><b lang="en">${esc(s[0])}</b><small>SB ${esc(s[1])}</small>${s[0] === 'Introduction' ? '<em class="is-ready">Ready</em>' : '<em>Soon</em>'}</button></li>`).join('')}</ol>
-        <button type="button" class="b-open" data-b="mapopen">${pick === L.n ? 'Back to the lesson' : `Open Lesson ${pick}`}${ic('arrow-right')}</button></aside></div>`;
+        <button type="button" class="b-open" data-b="mapopen">${pick === L.n ? 'Back to the lesson' : `Open Lesson ${pick}`}${ic('arrow-right')}</button></aside></div></div>`;
   }
   function openMap(on) { const m = $('#map'); if (on) { mapPick = FP.lesson().n; renderMap(); m.hidden = false; m.querySelector('.b-x').focus(); } else m.hidden = true; }
 
@@ -1085,6 +1087,7 @@
     if (palOpen) setPal(false); else if (menuOpen) setMenu(false); else setDial(!dialOpen);
   });
   $('#lessonBtn').addEventListener('click', () => openMap(true));
+  $('#map').addEventListener('click', e => { if (e.target === e.currentTarget && CLASSROOM()) openMap(false); });   // classroom: a tap on the dimmed board above the sheet closes it
   $('#fsBtn').addEventListener('click', () => FP.fullscreen());
   document.addEventListener('fullscreenchange', () => { $('#fsBtn').innerHTML = ic(document.fullscreenElement ? 'minimize' : 'maximize'); });
   const POPS = { extrasPop: ['extrasBtn', renderExtras], helpPop: ['helpBtn', null], sharePop: ['shareBtn', renderShare], displayPop: ['displayBtn', renderDisplay] };
