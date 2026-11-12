@@ -959,6 +959,11 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-lytray .b-prev{width:72px;height:72px;border-radius:20px}
 .b-lytray .b-next{height:72px;min-width:240px;border-radius:20px}
 .b-lytray--pick .b-roster{flex:1 1 420px;min-width:0}
+/* the layer keeps one look whatever the guide position: the side drawer's roster (2 columns of full-width rows) and its stretched
+   buttons are for the 360 px drawer only (user: "학생 패널은 이전 모양이 나은데..높이가 너무 길잖아") */
+:root:not([data-controls="bottom"]) .b-layer .b-roster{grid-auto-flow:column;grid-template-rows:repeat(2,42px);grid-template-columns:none;overflow-x:auto;overflow-y:hidden}
+:root:not([data-controls="bottom"]) .b-lytray .b-next{flex:none;min-width:240px}
+.b-layer .b-roster{margin:-2px -2px 0;padding:4px 4px 4px}   /* room for the picked name's 3 px ring inside the scroll clip; the names stay put */
 .b-layer .b-xi b{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:24px 12px 10px;background:linear-gradient(0deg,rgba(0,0,0,.86),rgba(0,0,0,.6) calc(100% - 24px),rgba(0,0,0,.36) calc(100% - 16px),rgba(0,0,0,.15) calc(100% - 8px),rgba(0,0,0,0));color:#fff;font-size:15px;font-weight:800;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.55)}   /* the shade travels with the name: every line sits on it */
 .b-layer .b-xi.is-soon b{color:rgba(255,255,255,.8)}
 .b-layer .b-xi .b-xgame,.b-layer .b-xi .b-xvid,.b-layer .b-xi em{position:absolute;top:9px;left:9px;right:auto;z-index:2}   /* the tag on the picture */
