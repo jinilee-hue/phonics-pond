@@ -1191,7 +1191,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-pick{--dice-disc:var(--acc)}   /* a disc the yellow dice stand out on: the theme's accent (Mint magenta, Yellow black, White blue, Pink plum) … */
 :root[data-theme="dark"] .b-pick{--dice-disc:#25334F}   /* … navy where the accent is yellow itself */
 :root[data-theme="blue"] .b-pick{--dice-disc:#1C3F96}
-.b-dice{position:relative;z-index:1;display:block;width:360px;height:220px;margin-top:2px}   /* two small yellow dice, drawn with WebGL */
+.b-dice{position:absolute;left:50%;top:50%;z-index:1;display:block;width:360px;height:220px;margin:0;translate:-50% -50%}   /* centred on the disc: wider than it, a grid track would grow to the right (user: "주사위 가운데 센터에 안맞고 우측으로 치우쳐") */   /* two small yellow dice, drawn with WebGL */
 .b-dicegl{display:block;width:100%;height:100%}
 .b-dice.is-icon{display:grid;place-items:center;width:270px;height:270px;margin:0;border-radius:50%;background:var(--acc);color:var(--acc-ink)}   /* no WebGL */
 .b-dice.is-icon .i{width:124px;height:124px;stroke-width:1.9}
