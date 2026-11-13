@@ -1113,12 +1113,12 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-cvletter{text-shadow:none}
 .b-cvletter>b{display:block;font-weight:inherit;filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 1.4) 0 rgba(0,0,0,.55))}
 .b-cvstart,.b-cvsay{display:grid;place-items:center;padding:0;border:0;cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;transition:transform .12s ease-out,box-shadow .12s ease-out}
-.b-cvstart{left:calc(var(--u) * 268);top:calc(var(--u) * 225);width:calc(var(--u) * 153);height:calc(var(--u) * 63);border-radius:calc(var(--u) * 16);
+.b-cvstart{left:calc(var(--u) * 268);top:calc(var(--u) * 212);width:calc(var(--u) * 172);height:calc(var(--u) * 87);border-radius:calc(var(--u) * 17);   /* the Mm tile's size (user: "수업시작 버튼도 Mm 노란색 박스 크기처럼") */
   background:#33467A linear-gradient(180deg,#6676A0 0%,#45577F 9%,#36497A 36%,#2F4373 80%,#293C6B 100%);
-  box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.26),inset 0 calc(var(--u) * -5) calc(var(--u) * 6) rgba(5,15,45,.45),0 calc(var(--u) * 3.5) 0 #1A2A4E,0 calc(var(--u) * 5) calc(var(--u) * 6) rgba(14,42,80,.34);
-  color:#FFFFFF;font-family:inherit;font-weight:800;font-size:calc(var(--u) * 27.2);letter-spacing:-.012em;text-shadow:0 calc(var(--u) * 1.4) 0 rgba(5,15,45,.4);
+  box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.26),inset 0 calc(var(--u) * -6) calc(var(--u) * 7) rgba(5,15,45,.45),0 calc(var(--u) * 5) 0 #1A2A4E,0 calc(var(--u) * 7) calc(var(--u) * 8) rgba(14,42,80,.34);
+  color:#FFFFFF;font-family:inherit;font-weight:800;font-size:calc(var(--u) * 36);letter-spacing:-.012em;text-shadow:0 calc(var(--u) * 1.4) 0 rgba(5,15,45,.4);
   animation:b-cvhello 4s ease-in-out .8s infinite}   /* a soft "tap me" */
-.b-cvsay{left:calc(var(--u) * 434);top:calc(var(--u) * 225);width:calc(var(--u) * 64);height:calc(var(--u) * 64);border-radius:calc(var(--u) * 16);
+.b-cvsay{left:calc(var(--u) * 455);top:calc(var(--u) * 223.5);   /* beside the bigger key, centred on the row */width:calc(var(--u) * 64);height:calc(var(--u) * 64);border-radius:calc(var(--u) * 16);
   background:#F1F1F1 linear-gradient(180deg,#FFFFFF 0%,#F6F6F6 35%,#ECECEC 75%,#E2E2E2 100%);
   box-shadow:inset 0 calc(var(--u) * 2) calc(var(--u) * 1) #FFFFFF,inset 0 calc(var(--u) * -3) calc(var(--u) * 4) rgba(0,0,0,.08),0 calc(var(--u) * 3) 0 #C6CCD2,0 calc(var(--u) * 5) calc(var(--u) * 6) rgba(30,90,140,.24)}
 .b-cvsay svg{width:calc(var(--u) * 42);height:calc(var(--u) * 31);margin:calc(var(--u) * 1) 0 0 calc(var(--u) * 1)}
