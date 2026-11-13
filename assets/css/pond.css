@@ -1268,3 +1268,5 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-lycards.is-more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px);mask-image:linear-gradient(90deg,transparent,#000 72px)}
 .b-lycards.is-more-l.is-more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent)}
 @media (hover:hover) and (pointer:fine){.b-lycards.is-more-l,.b-lycards.is-more-r{cursor:grab}}
+/* every scrollbar: just the thumb — no track and no line along the scroll area (user: "세로 스크롤바 들어가는 영역표시로 라인 넣지마. 스크롤바만 나오게") */
+*{scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}

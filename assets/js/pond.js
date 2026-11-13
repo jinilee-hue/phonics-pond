@@ -319,19 +319,31 @@
     DG = { cv, draw, roll, dice };
     return DG;
   }
+  // the soft dice (user: "주사위도 너무 실사 같은 느낌보다는 첨부한 느낌처럼 좀 부드러운 느낌으로" → picked A, the soft yellow): three.js,
+  // assets/clock3d/dice3d.js — the Timer clock's studio, a puffy rounded cube, raised pips; same faces and timing as before.
+  // The hand-made WebGL dice above stay for file:// and when the module can't load.
+  let SD = null, sdWait = null;
+  function softDice() {
+    if (!sdWait) sdWait = location.protocol === 'file:' ? Promise.resolve(SD = false)
+      : import(mod3d('dice3d.js')).then(m => (SD = m.createDice({ look: 'soft', seq: DICE_SEQ, up: DICE_UP, x: DICE_X, roll: DICE_ROLL, lag: DICE_LAG }) || false)).catch(() => (SD = false));
+    return sdWait;
+  }
   function diceLoop(slot) {
     if (!slot) return;
-    const g = diceGL();
-    if (!g) { slot.innerHTML = ic('dices'); slot.classList.add('is-icon'); return; }   // no WebGL: the dice icon as before
-    slot.appendChild(g.cv); requestAnimationFrame(() => g.draw());
-    if (lowMotion()) return;
-    clearTimeout(g.timer);
-    const next = () => {
-      if (!document.contains(g.cv)) return;
-      g.roll(Math.floor(Date.now() / 4000));
-      g.timer = setTimeout(next, 4000 - (Date.now() % 4000) + 5);
-    };
-    g.timer = setTimeout(next, Math.max(450, 4000 - (Date.now() % 4000) + 5));
+    softDice().then(() => {
+      if (!slot.isConnected) return;
+      const g = SD || diceGL();
+      if (!g) { slot.innerHTML = ic('dices'); slot.classList.add('is-icon'); return; }   // no WebGL: the dice icon as before
+      slot.appendChild(g.cv); requestAnimationFrame(() => g.draw());
+      if (lowMotion()) return;
+      clearTimeout(g.timer);
+      const next = () => {
+        if (!document.contains(g.cv)) return;
+        g.roll(Math.floor(Date.now() / 4000));
+        g.timer = setTimeout(next, 4000 - (Date.now() % 4000) + 5);
+      };
+      g.timer = setTimeout(next, Math.max(450, 4000 - (Date.now() % 4000) + 5));
+    });
   }
   const PSLABS = Array.from({ length: 12 }, (_, i) => `<i class="b-pslab" style="transform:translateZ(${-2.5 * (i + 1)}px);--m:${84 - i * 2.4}%"></i>`).join('');   // the Eyes-on-me block's thickness
   function timeUpStars(f) {   // 5 · stars burst from the clock when time is up
@@ -349,14 +361,12 @@
   // loaded the first time the Timer opens; one canvas, moved into each new clock; no WebGL → the layered SVG clock stays
   const RING_MS = 2800;
   let CK = null, ckWait = null;
+  const mod3d = f => { const u = new URL('../clock3d/' + f, SELF_SRC || location.href); if (SELF_SRC) u.search = new URL(SELF_SRC).search; return u.href; };   // the published build's ?v= keeps the modules fresh too
+  if (location.protocol !== 'file:') setTimeout(() => ['clock3d.js', 'dice3d.js'].forEach(f => import(mod3d(f)).catch(() => {})), 2500);   // fetched ahead, so Timer and Pick open with their 3D at once
   function clock3d(box) {
     if (!box) return;
     if (!ckWait && location.protocol === 'file:') ckWait = Promise.resolve(CK = false);   // modules don't load from file:// — the SVG clock
-    if (!ckWait) {
-      const u = new URL('../clock3d/clock3d.js', SELF_SRC || location.href);
-      if (SELF_SRC) u.search = new URL(SELF_SRC).search;   // the published build's ?v= keeps the module fresh too
-      ckWait = import(u.href).then(m => (CK = m.create() || false)).catch(() => (CK = false));
-    }
+    if (!ckWait) ckWait = import(mod3d('clock3d.js')).then(m => (CK = m.create() || false)).catch(() => (CK = false));
     ckWait.then(() => { if (!CK || !box.isConnected) return; box.prepend(CK.canvas); box.classList.add('is-gl'); CK.reset(); });
   }
   function dialP(left) {   // the slice's share of the face: time left; a fresh start winds up from nothing
