@@ -1147,6 +1147,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-tfacep{transform:translateZ(12px)}
 .b-tshadow{position:absolute;left:21%;right:21%;top:86%;height:9%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.30),rgba(0,0,0,0))}
 .b-tm[data-st="run"] .b-tbody{animation:b-tock 2s ease-in-out infinite}   /* 2 · tick-tock: it rocks and turns, side to side */
+.b-tm[data-st="run"] .b-t3d,.b-tm.is-done .b-t3d{transform:rotateX(8deg)}   /* running and ringing it faces the room, so the tick-tock and the ring swing to BOTH sides evenly (user: "한쪽으로만 흔들리는데 양쪽으로") — around the three-quarter view they only ever turned one way; Ready keeps that view */
 @keyframes b-tock{0%,100%{transform:none}25%{transform:rotateY(13deg) rotateZ(2.5deg)}75%{transform:rotateY(-13deg) rotateZ(-2.5deg)}}
 .b-tm.is-wind .b-tbody{animation:b-wind3d .7s cubic-bezier(.25,1.2,.4,1)}   /* 1 · wind-up: a hop and a twist */
 @keyframes b-wind3d{0%{transform:rotateY(-42deg) scale(.92)}38%{transform:translateY(-34px) rotateY(20deg) scale(1.05)}72%{transform:rotateY(-6deg) scale(.985)}100%{transform:none}}
