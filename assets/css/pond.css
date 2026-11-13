@@ -921,7 +921,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-lysec.is-on::after{background:var(--sec-on,var(--acc-text))}
 :root[data-theme="blue"] .b-lysec{--sec-on:#FFFFFF}   /* the blue / pink accent text is too faint on their own layer colour */
 :root[data-theme="pink"] .b-lysec{--sec-on:var(--acc)}
-.b-lycards{display:flex;gap:10px;overflow-x:auto;scrollbar-width:thin;margin:-4px -4px 0;padding:7px 6px 6px}   /* room for the selected card's 4 px ring + the 2 px hover lift inside the scroll clip (user: "선들이 왼쪽과 상단이 짤리는"); the negative margin keeps the cards where they were */
+.b-lycards{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;margin:-4px -4px 0;padding:7px 6px 6px;overscroll-behavior-x:contain;scroll-snap-type:x proximity;scroll-padding-inline:6px}   /* room for the selected card's 4 px ring + the 2 px hover lift inside the scroll clip (user: "선들이 왼쪽과 상단이 짤리는"); the negative margin keeps the cards where they were */
 .b-layer .b-card{flex:1 1 0;min-width:max-content;max-width:236px;width:auto;min-height:0;grid-template-rows:auto auto;align-content:center;gap:4px;padding:9px 14px 10px;border-radius:14px}   /* share the row; two lines: kicker · minutes, title (user: "activity는 박스 높이를 줄일수") */
 .b-layer .b-card b{font-size:15.5px;white-space:nowrap}
 .b-layer .b-card,.b-layer .b-card:hover{border-color:transparent}   /* no grey line, the fill as it was (user: "activity 박스 기본은 회색 라인없이") */
@@ -1082,6 +1082,10 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 :root.is-themefade::view-transition-old(root),:root.is-themefade::view-transition-new(root){animation-duration:.3s}
 @media (prefers-reduced-motion:reduce){.b-layer .b-card.is-on.is-new,.b-rchip.is-on.is-new,.b-opt[aria-pressed="true"].is-new,.b-layer .b-xi.is-on.is-new::after,.b-fabside.is-nope{animation:none}:root.is-moving .b-fabbtn{transform:none}}
 
+/* the title page's lettering (user: "표지에 폰트 스타일이 너무 딱딱한데 첨부로 줬던 폰트 스타일로"): soft rounded strokes like the picture —
+   Nunito (Latin, variable 200–1000) + NanumSquareRound ExtraBold (Hangul, only the cover's syllables); both SIL OFL, served from here */
+@font-face{font-family:"PondCoverLatin";src:url("../fonts/cover-nunito.woff2") format("woff2");font-weight:200 1000;font-display:block;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212}
+@font-face{font-family:"PondCoverKo";src:url("../fonts/cover-nsr-eb.woff2") format("woff2");font-weight:100 1000;font-display:block;unicode-range:U+AC00-D7A3,U+3131-318E}
 /* ---------- the lesson's title page (user: "… 대문 …", "배경이미지는 별도로 줄테니까 lessen1 대문 최대한 비슷하게") ----------
    the background fills the board like object-fit: cover; .b-cvui is that same picture box (2752 × 1536 picture on a 1024-wide grid, --u = one grid px),
    nudged in only when a narrow screen would crop the words */
@@ -1090,17 +1094,17 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-cvbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;user-select:none;-webkit-user-drag:none;pointer-events:none}
 .b-cvui{--F:max(100cqw,179.1667cqh);--u:calc(var(--F) / 1024);position:absolute;width:var(--F);height:calc(var(--F) * .558140);
   left:max(calc((100cqw - var(--F)) / 2),calc(2.5cqw - var(--u) * 77));top:max(calc((100cqh - var(--F) * .558140) / 2),calc(2.5cqh - var(--u) * 86));
-  font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;pointer-events:none}
+  font-family:"PondCoverLatin","PondCoverKo","Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;pointer-events:none}
 .b-cvui>*{position:absolute;margin:0;white-space:nowrap;line-height:1}
 .b-cvdefs{position:absolute;width:0;height:0;overflow:hidden}
-.b-cvkick{left:calc(var(--u) * 75.5);top:calc(var(--u) * 83.6);font-weight:820;font-size:calc(var(--u) * 28.3);letter-spacing:-.014em;color:#34436D;
+.b-cvkick{left:calc(var(--u) * 75.5);top:calc(var(--u) * 83.5);font-weight:880;font-size:calc(var(--u) * 29);letter-spacing:-.03em;word-spacing:-.04em;color:#34436D;
   filter:url(#cvClayS) drop-shadow(0 calc(var(--u) * 1.2) 0 rgba(25,40,85,.38)) drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 4) rgba(30,90,150,.22))}   /* clay: lit from the top left, a dark lower lip, a soft shadow */
-.b-cvtitle{left:calc(var(--u) * 74);top:calc(var(--u) * 123.5);font-weight:850;font-size:calc(var(--u) * 69);letter-spacing:-.0176em;color:#35446F;
+.b-cvtitle{left:calc(var(--u) * 74);top:calc(var(--u) * 126.7);font-weight:1000;font-size:calc(var(--u) * 67.6);letter-spacing:-.026em;word-spacing:-.1em;color:#35446F;
   filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 2) 0 #27335D) drop-shadow(0 calc(var(--u) * 5) calc(var(--u) * 5) rgba(25,75,135,.26))}
-.b-cvletter{left:calc(var(--u) * 78);top:calc(var(--u) * 212);width:calc(var(--u) * 172);height:calc(var(--u) * 87);box-sizing:border-box;padding:calc(var(--u) * 6) calc(var(--u) * 4) 0 0;display:grid;place-items:center;isolation:isolate;border-radius:calc(var(--u) * 17);
+.b-cvletter{left:calc(var(--u) * 78);top:calc(var(--u) * 212);width:calc(var(--u) * 172);height:calc(var(--u) * 87);box-sizing:border-box;padding:calc(var(--u) * 10) calc(var(--u) * 4) 0 0;display:grid;place-items:center;isolation:isolate;border-radius:calc(var(--u) * 17);
   background:#FBD02E linear-gradient(180deg,#FFE35E 0%,#FDD535 30%,#FACB27 70%,#F1BC1C 100%);
   box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.75),inset calc(var(--u) * 2) 0 calc(var(--u) * 3) rgba(255,255,255,.3),inset 0 calc(var(--u) * -5) calc(var(--u) * 5) rgba(205,128,0,.5),0 calc(var(--u) * 5) 0 #C08714,0 0 calc(var(--u) * 3) rgba(150,110,10,.25),0 calc(var(--u) * 7) calc(var(--u) * 8) rgba(110,80,10,.3)}
-.b-cvletter span,.b-cvletter{font-weight:900;font-size:calc(var(--u) * 67.7);letter-spacing:-.01em;color:#2E3D6A}
+.b-cvletter span,.b-cvletter{font-weight:1000;font-size:calc(var(--u) * 68);letter-spacing:.012em;color:#2E3D6A}
 .b-cvletter::before{content:"";position:absolute;z-index:-1;inset:calc(var(--u) * 10);border-radius:calc(var(--u) * 10);
   background:linear-gradient(180deg,#EDB91E 0%,#F9CF30 22%,#FDD83A 100%);
   box-shadow:inset 0 0 0 calc(var(--u) * 1.6) rgba(188,122,4,.72),inset 0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(165,100,0,.55),0 calc(var(--u) * 1.8) 0 rgba(255,255,255,.75),0 calc(var(--u) * -1.2) 0 rgba(196,128,6,.35)}   /* the framed panel sits a step lower inside the rim */
@@ -1110,7 +1114,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-cvstart{left:calc(var(--u) * 268);top:calc(var(--u) * 225);width:calc(var(--u) * 153);height:calc(var(--u) * 63);border-radius:calc(var(--u) * 16);
   background:#33467A linear-gradient(180deg,#6676A0 0%,#45577F 9%,#36497A 36%,#2F4373 80%,#293C6B 100%);
   box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.26),inset 0 calc(var(--u) * -5) calc(var(--u) * 6) rgba(5,15,45,.45),0 calc(var(--u) * 3.5) 0 #1A2A4E,0 calc(var(--u) * 5) calc(var(--u) * 6) rgba(14,42,80,.34);
-  color:#FFFFFF;font-family:inherit;font-weight:780;font-size:calc(var(--u) * 28.6);letter-spacing:-.012em;text-shadow:0 calc(var(--u) * 1.4) 0 rgba(5,15,45,.4);
+  color:#FFFFFF;font-family:inherit;font-weight:800;font-size:calc(var(--u) * 27.2);letter-spacing:-.012em;text-shadow:0 calc(var(--u) * 1.4) 0 rgba(5,15,45,.4);
   animation:b-cvhello 4s ease-in-out .8s infinite}   /* a soft "tap me" */
 .b-cvsay{left:calc(var(--u) * 434);top:calc(var(--u) * 225);width:calc(var(--u) * 64);height:calc(var(--u) * 64);border-radius:calc(var(--u) * 16);
   background:#F1F1F1 linear-gradient(180deg,#FFFFFF 0%,#F6F6F6 35%,#ECECEC 75%,#E2E2E2 100%);
@@ -1180,8 +1184,12 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-pkbubs{position:absolute;inset:0;pointer-events:none}   /* 8 · classmates float like pond bubbles */
 .b-pkbub{position:absolute;display:grid;place-items:center;width:66px;height:66px;margin:-33px 0 0 -33px;border-radius:50%;background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.55) 0 9%,rgba(255,255,255,0) 26%),var(--c);color:#FFFFFF;font:700 32px/1 var(--kid);box-shadow:inset 0 -6px 12px rgba(0,0,0,.18),0 12px 22px -12px rgba(0,0,0,.6);animation:b-float var(--t,3.4s) ease-in-out var(--d,0s) infinite alternate}
 @keyframes b-float{from{transform:translate(0,-9px)}to{transform:translate(var(--sx,5px),9px) scale(1.04)}}
-.b-pkcard.is-wait .b-pkav{background:none;box-shadow:none}   /* 8 · two real dice instead of the dice icon */
-.b-dice{position:relative;z-index:1;display:block;width:360px;height:220px;margin-top:18px}   /* two small yellow dice, drawn with WebGL */
+.b-pkcard.is-wait .b-pkav{background:radial-gradient(circle at 50% 34%,color-mix(in srgb,var(--dice-disc) 82%,#fff) 0%,var(--dice-disc) 58%,color-mix(in srgb,var(--dice-disc) 84%,#000) 100%);
+  box-shadow:inset 0 -12px 24px rgba(0,0,0,.16),0 34px 60px -24px rgba(0,0,0,.42)}   /* 8 · the dice on a disc (user: "주사위 뒤에 원 배경") — the reveal's avatar circle takes this very place */
+.b-pick{--dice-disc:var(--acc)}   /* a disc the yellow dice stand out on: the theme's accent (Mint magenta, Yellow black, White blue, Pink plum) … */
+:root[data-theme="dark"] .b-pick{--dice-disc:#25334F}   /* … navy where the accent is yellow itself */
+:root[data-theme="blue"] .b-pick{--dice-disc:#1C3F96}
+.b-dice{position:relative;z-index:1;display:block;width:360px;height:220px;margin-top:2px}   /* two small yellow dice, drawn with WebGL */
 .b-dicegl{display:block;width:100%;height:100%}
 .b-dice.is-icon{display:grid;place-items:center;width:270px;height:270px;margin:0;border-radius:50%;background:var(--acc);color:var(--acc-ink)}   /* no WebGL */
 .b-dice.is-icon .i{width:124px;height:124px;stroke-width:1.9}
@@ -1229,3 +1237,13 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
   .b-tzzz b:nth-child(2){transform:translate(22px,-52px)}
   .b-tzzz b:nth-child(3){transform:translate(44px,-108px)}
 }
+
+/* ---------- the layer's rows slide (user: "activity와 그 밑에 mening first 리스트 … 스크롤 보이지 않고 슬라이드로") ---------- */
+.b-lycards::-webkit-scrollbar{display:none}
+.b-lycards>*{scroll-snap-align:start}
+.b-lycards.is-drag{scroll-snap-type:none;cursor:grabbing;user-select:none}
+.b-lycards.is-drag>*{transform:none !important}   /* no press dip while sliding */
+.b-lycards.is-more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 72px),transparent)}   /* more that way */
+.b-lycards.is-more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px);mask-image:linear-gradient(90deg,transparent,#000 72px)}
+.b-lycards.is-more-l.is-more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent)}
+@media (hover:hover) and (pointer:fine){.b-lycards.is-more-l,.b-lycards.is-more-r{cursor:grab}}

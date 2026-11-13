@@ -122,7 +122,7 @@
   // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
   // over the board while the lesson waits at its very first step. The picture is only the background; the words and the buttons are
   // real ones, placed on the picture's own grid (1024 units wide, 2752 × 1536 picture) so they keep their spot on it at any screen shape
-  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.', startSec: 'Alphabet' } };   // 수업 시작 → Alphabet's first class (user)   // 🔊 reads the title (user picked)
+  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.', startSec: 'Alphabet', music: 'assets/covers/main-bgm.mp3' } };   // 수업 시작 → Alphabet's first class (user)   // 🔊 reads the title (user picked)
   let coverOn = false, coverOutT = 0;
   const atLessonStart = () => {   // where opening a lesson lands: Introduction · its first activity · step 1
     const st = FP.state(), fl = FP.flow(), intro = Math.max(0, FP.sections().findIndex(x => x.name === 'Introduction'));
@@ -142,8 +142,34 @@
     el.querySelectorAll('[data-b0]').forEach(f => f.setAttribute('stdDeviation', (+f.dataset.b0 * u).toFixed(2)));
     el.querySelectorAll('[data-s0]').forEach(f => f.setAttribute('surfaceScale', (+f.dataset.s0 * u).toFixed(2)));
   }
+  // the title page's music (user: "수업시작전에 lesson1 표지 열어뒀을때 … main-bgm.mp3 음악 나오게"): it loops while the cover is up on the
+  // classroom screen — not on the tablets, not under Timer / Pick / Eyes on me — ducks under the spoken title and fades out on 수업 시작;
+  // Display › Sound effects Off = quiet. A browser holds sound until the first tap or key: it starts then (unless that was 수업 시작)
+  let bgm = null, bgmT = 0, bgmArmed = false;
+  const bgmWant = () => { const cv = !STUDENT && coverOn && FP.lesson() && COVERS[FP.lesson().n]; return !!(cv && cv.music && scene === 'lesson' && sfxOn()); };
+  function bgmSync() {
+    if (STUDENT) return;
+    if (bgmWant()) {
+      if (!bgm) { bgm = new Audio(COVERS[FP.lesson().n].music); bgm.loop = true; bgm.preload = 'auto'; bgm.volume = 0; }
+      if (bgm.paused) bgm.play().then(bgmRun).catch(bgmArm); else bgmRun();
+    } else if (bgm && !bgm.paused) bgmRun();
+  }
+  function bgmRun() {   // one gentle loop: fade in (~1 s), duck while the title is spoken, fade out (~0.5 s) and stop
+    if (bgmT) return;
+    bgmT = setInterval(() => {
+      const goal = bgmWant() ? (window.speechSynthesis && speechSynthesis.speaking ? 0.12 : 0.55) : 0, v = bgm.volume, step = goal > v ? 0.05 : 0.08;
+      bgm.volume = Math.abs(goal - v) <= step ? goal : v + Math.sign(goal - v) * step;
+      if (goal === 0 && bgm.volume === 0) { clearInterval(bgmT); bgmT = 0; bgm.pause(); if (!coverOn) bgm.currentTime = 0; }   // the next cover starts the song again
+    }, 80);
+  }
+  function bgmArm() {
+    if (bgmArmed) return; bgmArmed = true;
+    const go = () => { removeEventListener('click', go, true); removeEventListener('keydown', go, true); bgmArmed = false; setTimeout(bgmSync, 0); };   // after that gesture's own action
+    addEventListener('click', go, true); addEventListener('keydown', go, true);
+  }
   function renderCover() {
     const el = $('#cover'); if (!el) return;
+    bgmSync();
     if (!el._ro) { el._ro = new ResizeObserver(fitCover); el._ro.observe(el); }
     const n = FP.lesson() && FP.lesson().n, cv = coverOn && COVERS[n];
     if (!cv) {   // the lesson started: the page lifts away
@@ -738,7 +764,7 @@
     if (v === 'pause') resumeTo = scene;
     if (v !== 'lesson') pauseMedia();
     if (v === 'pick' && scene !== 'pick' && Date.now() - PK.t0 > 1500) { PK.name = ''; PK.seq = null; }   // a fresh "Who's next?" board
-    scene = v;
+    scene = v; bgmSync();   // (the title page's music rests under a class tool)
     if (v === 'pause') sfx('dingdong');   // 13 · the attention signal
     renderScenes(); renderScene(); renderDock(); broadcast(); if (dialOpen) { renderLayer(); placeFab(); renderFab(); }   // the layer follows the board (keys, the tablet preview)
   }
@@ -903,6 +929,7 @@
         <div class="b-lycards">${flow.map(card).join('')}</div></div>
       <div class="b-lyrow b-lyrow--mf"><div class="b-lyhead"><h3>${ic('layers')}Meaning First</h3></div><div class="b-lycards">${mfGroup.items.map(tile).join('')}</div></div>`;
     const on = el.querySelector('.b-card.is-on'); if (on) { const box = on.parentElement; box.scrollLeft = on.offsetLeft - box.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
+    rowsEdges(); requestAnimationFrame(rowsEdges);   // soft edges where a row has more
     const sec = el.querySelector('.b-lysec.is-on'); if (sec) sec.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     if (pR && pR.width && sec && sec.dataset.v !== pV && !RM()) {   // the line slides over from the old tab (user: "4번"); it runs 12 px in from each side
       const nR = sec.getBoundingClientRect();
@@ -1380,7 +1407,7 @@
       case 'prev': FP.prev(); break;
       case 'coverstart': startLesson(); break;   // the picture's 수업 시작
       case 'coversay': { const cv = COVERS[FP.lesson().n]; if (cv) FP.speak(cv.say); break; }   // the picture's 🔊: the title in English
-      case 'sfx': put('pondc-sfx', v === 'on'); renderDisplay(); if (v === 'on') sfx('tick'); break;
+      case 'sfx': put('pondc-sfx', v === 'on'); renderDisplay(); bgmSync(); if (v === 'on') sfx('tick'); break;
       case 'close': FP.closeExtra(); break;
       case 'tool': FP.ink.set({ tool: v }); break;
       case 'color': FP.ink.set({ color: v }); break;
@@ -1452,6 +1479,40 @@
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && tag !== 'button' && tag !== 'a')) { e.preventDefault(); e.stopPropagation(); startLesson(); return; }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); e.stopPropagation(); }
   }, true);
+  // the layer's rows (Activity, Meaning First) slide — no scrollbar (user: "activity와 그 밑에 mening first 리스트 갯수 많으면 스크롤 보이지
+  // 않고 슬라이드로 뒤에껏도 확인할수 있게"): a finger swipes them natively, a mouse / pen drags (a flick glides on), a wheel turns sideways;
+  // a soft edge shows there is more that way. A drag is never a tap on a card
+  function rowEdges(box) { const m = box.scrollWidth - box.clientWidth; box.classList.toggle('is-more-l', m > 1 && box.scrollLeft > 2); box.classList.toggle('is-more-r', m > 1 && box.scrollLeft < m - 2); }
+  function rowsEdges() { document.querySelectorAll('.b-lycards').forEach(rowEdges); }
+  document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('b-lycards')) rowEdges(e.target); }, true);
+  addEventListener('resize', rowsEdges);
+  let rowDrag = null;
+  document.addEventListener('pointerdown', e => {
+    const box = e.target.closest && e.target.closest('.b-lycards');
+    if (!box || e.pointerType === 'touch' || e.button !== 0 || box.scrollWidth <= box.clientWidth + 1) return;
+    rowDrag = { box, id: e.pointerId, x: e.clientX, left: box.scrollLeft, moved: false, lx: e.clientX, t: performance.now(), v: 0 };
+  });
+  document.addEventListener('pointermove', e => {
+    const d = rowDrag; if (!d || e.pointerId !== d.id) return;
+    const dx = e.clientX - d.x;
+    if (!d.moved) { if (Math.abs(dx) < 6) return; d.moved = true; d.box.classList.add('is-drag'); try { d.box.setPointerCapture(e.pointerId); } catch (err) { /* gone */ } }
+    const now = performance.now(); d.v = (e.clientX - d.lx) / Math.max(1, now - d.t); d.lx = e.clientX; d.t = now;
+    d.box.scrollLeft = d.left - dx;
+  });
+  const rowDrop = e => {
+    const d = rowDrag; if (!d || e.pointerId !== d.id) return; rowDrag = null;
+    if (!d.moved) return;
+    d.box.classList.remove('is-drag');
+    if (Math.abs(d.v) > 0.35 && !RM()) d.box.scrollBy({ left: -d.v * 240, behavior: 'smooth' });   // a flick glides on
+    const eat = ev => { ev.stopPropagation(); ev.preventDefault(); };
+    addEventListener('click', eat, true); setTimeout(() => removeEventListener('click', eat, true), 80);   // the drag's own click
+  };
+  document.addEventListener('pointerup', rowDrop); document.addEventListener('pointercancel', rowDrop);
+  document.addEventListener('wheel', e => {   // a mouse wheel over a row slides it sideways
+    const box = e.target.closest && e.target.closest('.b-lycards');
+    if (!box || box.scrollWidth <= box.clientWidth + 1 || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+    e.preventDefault(); box.scrollLeft += e.deltaY;
+  }, { passive: false });
   $('#gdim').addEventListener('click', () => { if (notesOpen || flowOpen) { notesOpen = flowOpen = false; renderFlow(); renderNotes(); renderDock(); } setGuide(false); });   // the guide's sheets go with it
   $('#fabBtn').addEventListener('click', () => {   // classroom: the one button opens Menu · Guide · Pen, or closes what is open
     if (!CLASSROOM()) { setPal(!palOpen); return; }
