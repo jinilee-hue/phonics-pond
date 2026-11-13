@@ -122,13 +122,14 @@
   // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
   // over the board while the lesson waits at its very first step. The picture is only the background; the words and the buttons are
   // real ones, placed on the picture's own grid (1024 units wide, 2752 × 1536 picture) so they keep their spot on it at any screen shape
-  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.', startSec: 'Alphabet', music: 'assets/covers/main-bgm.mp3' } };   // 수업 시작 → Alphabet's first class (user)   // 🔊 reads the title (user picked)
+  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', startSec: 'Alphabet', music: 'assets/covers/main-bgm.mp3' } };   // 수업 시작 → Alphabet's first class (user)   // the speaker key = the music on / off
   let coverOn = false, coverOutT = 0;
   const atLessonStart = () => {   // where opening a lesson lands: Introduction · its first activity · step 1
     const st = FP.state(), fl = FP.flow(), intro = Math.max(0, FP.sections().findIndex(x => x.name === 'Introduction'));
     return !st.extra && st.sec === intro && st.step === 0 && !!fl.length && st.act === (fl.find(x => x.id === 'ls1') ? 'ls1' : fl[0].id);
   };
   const CV_SPK = '<svg viewBox="0 0 42 31" aria-hidden="true"><defs><linearGradient id="cvSpk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#72B8F7"/><stop offset=".55" stop-color="#3F8DEB"/><stop offset="1" stop-color="#2A72DA"/></linearGradient></defs><path d="M4.2 10.2h5.6l8.3-6.7c1.6-1.3 3.9-.2 3.9 1.9v20.2c0 2.1-2.3 3.2-3.9 1.9l-8.3-6.7H4.2A3.2 3.2 0 0 1 1 17.6v-4.2a3.2 3.2 0 0 1 3.2-3.2z" fill="url(#cvSpk)"/><path d="M27.6 10.6a7.2 7.2 0 0 1 0 9.8M33.4 5.8a13.6 13.6 0 0 1 0 19.4" fill="none" stroke="url(#cvSpk)" stroke-width="4" stroke-linecap="round"/></svg>';
+  const CV_SPK_OFF = '<svg viewBox="0 0 42 31" aria-hidden="true"><defs><linearGradient id="cvSpk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#72B8F7"/><stop offset=".55" stop-color="#3F8DEB"/><stop offset="1" stop-color="#2A72DA"/></linearGradient></defs><path d="M4.2 10.2h5.6l8.3-6.7c1.6-1.3 3.9-.2 3.9 1.9v20.2c0 2.1-2.3 3.2-3.9 1.9l-8.3-6.7H4.2A3.2 3.2 0 0 1 1 17.6v-4.2a3.2 3.2 0 0 1 3.2-3.2z" fill="url(#cvSpk)"/><path d="M27.4 10.4l9.6 10.2M37 10.4l-9.6 10.2" fill="none" stroke="url(#cvSpk)" stroke-width="4" stroke-linecap="round"/></svg>';
   // clay lettering: the blurred glyph is a bump map lit from the top left — a low specular light shines on the upper edges only, a diffuse
   // light shades the lower ones; the faces keep their colour (bl = bump blur, sc = bump height, sp = shine; all in picture px)
   const CV_CLAY = (id, bl, sc, sp) => `<filter id="${id}" x="-3%" y="-12%" width="106%" height="130%" color-interpolation-filters="sRGB"><feGaussianBlur in="SourceAlpha" data-b0="${bl}" stdDeviation="${bl}" result="b"/>`
@@ -145,12 +146,12 @@
   // the title page's music (user: "수업시작전에 lesson1 표지 열어뒀을때 … main-bgm.mp3 음악 나오게"): it loops while the cover is up on the
   // classroom screen — not on the tablets, not under Timer / Pick / Eyes on me — ducks under the spoken title and fades out on 수업 시작;
   // Display › Sound effects Off = quiet. A browser holds sound until the first tap or key: it starts then (unless that was 수업 시작)
-  let bgm = null, bgmT = 0, bgmArmed = false;
-  const bgmWant = () => { const cv = !STUDENT && coverOn && FP.lesson() && COVERS[FP.lesson().n]; return !!(cv && cv.music && scene === 'lesson' && sfxOn()); };
+  let bgm = null, bgmT = 0, bgmArmed = false, bgmMuted = !sfxOn();   // the speaker key mutes it; Display › Sound effects sets it too
+  const bgmWant = () => { const cv = !STUDENT && coverOn && FP.lesson() && COVERS[FP.lesson().n]; return !!(cv && cv.music && scene === 'lesson' && !bgmMuted); };
   function bgmSync() {
     if (STUDENT) return;
     if (bgmWant()) {
-      if (!bgm) { bgm = new Audio(COVERS[FP.lesson().n].music); bgm.loop = true; bgm.preload = 'auto'; bgm.volume = 0; }
+      if (!bgm) { bgm = new Audio(COVERS[FP.lesson().n].music); bgm.loop = true; bgm.preload = 'auto'; bgm.volume = 0; ['play', 'pause'].forEach(t => bgm.addEventListener(t, bgmFace)); }
       if (bgm.paused) bgm.play().then(bgmRun).catch(bgmArm); else bgmRun();
     } else if (bgm && !bgm.paused) bgmRun();
   }
@@ -161,6 +162,17 @@
       bgm.volume = Math.abs(goal - v) <= step ? goal : v + Math.sign(goal - v) * step;
       if (goal === 0 && bgm.volume === 0) { clearInterval(bgmT); bgmT = 0; bgm.pause(); if (!coverOn) bgm.currentTime = 0; }   // the next cover starts the song again
     }, 80);
+  }
+  function bgmFace() {   // the speaker shows what the room hears: waves while the music plays, a cross while it's off (or still held by the browser)
+    const b = $('#cover [data-b=covermusic]'); if (!b) return;
+    const on = !!(bgm && !bgm.paused && !bgmMuted);
+    if (b.dataset.on === String(on)) return;
+    b.dataset.on = on; b.innerHTML = on ? CV_SPK : CV_SPK_OFF; b.setAttribute('aria-pressed', on);
+    b.title = b.ariaLabel = on ? 'Music off' : 'Music on';
+  }
+  function bgmToggle() {   // playing → quiet; quiet (or held) → play
+    bgmMuted = !!(bgm && !bgm.paused && !bgmMuted);
+    bgmSync(); bgmFace();
   }
   function bgmArm() {
     if (bgmArmed) return; bgmArmed = true;
@@ -182,8 +194,8 @@
     clearTimeout(coverOutT); el.classList.remove('is-out');
     if (!el.hidden && el.dataset.n === String(n)) return;
     el.dataset.n = n;
-    el.innerHTML = `<svg class="b-cvdefs" width="0" height="0" aria-hidden="true">${CV_CLAY('cvClay', 2.2, 2.6, 0.5)}${CV_CLAY('cvClayS', 1.3, 0.9, 0.18)}</svg><img class="b-cvbg" src="${cv.bg}" alt="" draggable="false"><div class="b-cvui" lang="en"><p class="b-cvkick">${esc(cv.kicker)}</p><h2 class="b-cvtitle">${cv.title.split(' · ').map((t, i) => i ? `<span class="b-cvhl">${esc(t)}</span>` : esc(t)).join(' · ')}</h2><span class="b-cvletter"><b>${esc(cv.letter)}</b></span>${STUDENT ? '' : `<button type="button" class="b-cvstart" data-b="coverstart" lang="ko" title="Start the lesson (→)">수업 시작</button><button type="button" class="b-cvsay" data-b="coversay" title="Say the lesson title" aria-label="Say the lesson title">${CV_SPK}</button>`}</div>`;   // the tablets: no buttons
-    el.hidden = false; fitCover();
+    el.innerHTML = `<svg class="b-cvdefs" width="0" height="0" aria-hidden="true">${CV_CLAY('cvClay', 2.2, 2.6, 0.5)}${CV_CLAY('cvClayS', 1.3, 0.9, 0.18)}</svg><img class="b-cvbg" src="${cv.bg}" alt="" draggable="false"><div class="b-cvui" lang="en"><p class="b-cvkick">${esc(cv.kicker)}</p><h2 class="b-cvtitle">${cv.title.split(' · ').map((t, i) => i ? `<span class="b-cvhl">${esc(t)}</span>` : esc(t)).join(' · ')}</h2><span class="b-cvletter"><b>${esc(cv.letter)}</b></span>${STUDENT ? '' : `<button type="button" class="b-cvstart" data-b="coverstart" lang="ko" title="Start the lesson (→)">수업 시작</button><button type="button" class="b-cvsay" data-b="covermusic" title="Music on" aria-label="Music on" aria-pressed="false" data-on="false">${CV_SPK_OFF}</button>`}</div>`;   // the tablets: no buttons
+    el.hidden = false; fitCover(); bgmFace();
   }
   // 8 · two real dice (user: "실제 3d 주사위", then "노란색바탕에 검은색 점 … 두개 정도가 작게 … 모서리들이 끊어지지 않고 부드럽게 이어진
   // 형태의 3d"): a rounded-box mesh drawn with WebGL — smooth rims, lit, soft floor shadows. Every 4 s both hop, tumble and land
@@ -1406,8 +1418,8 @@
       case 'next': if (coverOn) startLesson(); else FP.next(); break;   // on the cover: › starts the lesson at its first step
       case 'prev': FP.prev(); break;
       case 'coverstart': startLesson(); break;   // the picture's 수업 시작
-      case 'coversay': { const cv = COVERS[FP.lesson().n]; if (cv) FP.speak(cv.say); break; }   // the picture's 🔊: the title in English
-      case 'sfx': put('pondc-sfx', v === 'on'); renderDisplay(); bgmSync(); if (v === 'on') sfx('tick'); break;
+      case 'covermusic': bgmToggle(); break;   // the cover's speaker = the music on / off (user)
+      case 'sfx': put('pondc-sfx', v === 'on'); bgmMuted = v !== 'on'; renderDisplay(); bgmSync(); bgmFace(); if (v === 'on') sfx('tick'); break;
       case 'close': FP.closeExtra(); break;
       case 'tool': FP.ink.set({ tool: v }); break;
       case 'color': FP.ink.set({ color: v }); break;
