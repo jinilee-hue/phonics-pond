@@ -1230,7 +1230,7 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 @keyframes b-wink{50%,100%{transform:scaleY(.1)}}
 /* ---------- 17 · Display › Sound effects ---------- */
 .b-opts--sfx{grid-template-columns:repeat(2,minmax(0,1fr))}
-.b-opt--sfx{grid-auto-flow:column;align-items:center;justify-content:center;gap:10px;min-height:48px;padding:8px 12px}   /* icon + word on one line: the row stays as low as the Button row */
+.b-opt--sfx{grid-auto-flow:column;align-items:center;justify-content:center;gap:10px;height:42px;min-height:0;padding:0 12px}   /* icon + word on one line, as tall as Reset position beside it (user: "버튼 높이가 달라. 확인해서 통일해") */
 .b-opt--sfx .i{width:24px;height:24px}
 @media (prefers-reduced-motion:reduce){
   .b-cover,.b-cvstart,.b-tm[data-st="run"] .b-tbody,.b-tm.is-wind .b-tbody,.b-tm.is-wind .b-tshadow,.b-tm[data-st="paused"] .b-tbody,.b-tm.is-done .b-tbody,.b-tstars i,.b-tface .ey,.b-pkbub,.b-pkcard.is-spin b,.b-pkcard.is-pick.is-fresh .b-pkav,.b-pkcard.is-fresh .b-pkcap,.b-pkrain i,.b-spause .b-pspin,.b-spause .b-pbody,.b-spause .b-attn .pu,.b-spause .b-attn .hl,.b-spause .b-attn .eye,.b-spause .b-spreply,.b-tm.is-done .b-tnum{animation:none}
