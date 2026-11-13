@@ -1158,6 +1158,24 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 @keyframes b-doze{50%{transform:rotateX(6deg) translateY(5px)}}
 .b-tm.is-done .b-t3d svg{animation:none}
 .b-tm.is-done .b-tbody{animation:b-ring3d .42s ease-in-out 5}   /* 5 · it rings: the whole clock jiggles in 3D */
+/* the 3D clock (three.js, assets/clock3d — user: "알람시계의 볼륨감 … 래퍼런스 … 모션도 자연스럽게 신나게"); the layered SVG clock is the no-WebGL fallback */
+.b-tclock .b-tgl{position:absolute;left:-17%;top:-22%;width:134%;height:128%;pointer-events:none}
+.b-tclock.is-gl :is(.b-t3d,.b-tshadow){display:none}
+.b-tring{position:absolute;inset:0;display:none;pointer-events:none}
+.b-tclock.is-gl .b-tring{display:block}
+.b-tring svg{display:block;width:100%;height:100%;overflow:visible}
+.b-tring .arcs path{fill:none;stroke:#FFFFFF;stroke-width:13;stroke-linecap:round;opacity:0}
+:root[data-tone="bright"] .b-tring .arcs path{stroke:var(--tm)}
+.b-tring .bolts path{fill:#FFC53D;stroke:#A86F00;stroke-width:3;stroke-linejoin:round;opacity:0}
+.b-tm.is-ring .b-tring .arcs path{animation:b-arcs .6s ease-out infinite}
+.b-tm.is-ring .b-tring .arcs path:nth-child(2n){animation-delay:.15s}
+.b-tm.is-ring .b-tring .bolts path{animation:b-bolt .72s cubic-bezier(.2,1.5,.4,1) infinite}
+.b-tm.is-ring .b-tring .bolts g:nth-child(2) path{animation-delay:.18s}
+.b-tm.is-ring .b-tring .bolts g:nth-child(3) path{animation-delay:.36s}
+.b-tm.is-ring .b-tring .bolts g:nth-child(4) path{animation-delay:.54s}
+@keyframes b-arcs{0%{opacity:0;stroke-width:5}30%{opacity:1}100%{opacity:0;stroke-width:16}}
+@keyframes b-bolt{0%{opacity:0;transform:scale(.3)}35%{opacity:1;transform:scale(1.15)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.85)}}
+@media (prefers-reduced-motion:reduce){.b-tm.is-ring .b-tring path{animation:none}.b-tm.is-ring .b-tring .arcs path{opacity:.9}}
 @keyframes b-ring3d{0%,100%{transform:none}25%{transform:rotateZ(-7deg) rotateY(12deg)}75%{transform:rotateZ(7deg) rotateY(-12deg)}}
 .b-tm[data-zone="green"]{--tpie:#22A55B}   /* 3 · traffic lights */
 .b-tm[data-zone="amber"]{--tpie:#F2A20C}

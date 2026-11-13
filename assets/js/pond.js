@@ -10,6 +10,7 @@
   const root = document.documentElement;
   const qs = new URLSearchParams(location.search);
   const STUDENT = root.dataset.view === 'student';
+  const SELF_SRC = document.currentScript ? document.currentScript.src : '';   // where this file lives (the 3D clock module sits next door)
   const CH = 'BroadcastChannel' in window ? new BroadcastChannel('phonics-pond-class') : null;
   const DESIGN = [1280, 800];
   const put = (k, v) => { try { localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v)); } catch (e) { /* private mode */ } };
@@ -344,6 +345,35 @@
     $('#stage').insertAdjacentHTML('beforeend', `<div class="b-media" id="media" hidden></div><div class="b-game" id="game" hidden></div><div class="b-cover" id="cover" hidden></div><div class="b-scene" id="scene" hidden></div><div class="b-over"><button type="button" class="b-ctimer" id="ctimer" data-b="scene" data-v="timer" title="Timer"${STUDENT ? ' tabindex="-1"' : ''} hidden></button></div>`);
   }
 
+  // the Timer's alarm clock in real 3D (user: "알람시계의 볼륨감도 … 래퍼런스 참고해서 … 모션도 자연스럽게 신나게"): three.js in assets/clock3d,
+  // loaded the first time the Timer opens; one canvas, moved into each new clock; no WebGL → the layered SVG clock stays
+  const RING_MS = 2800;
+  let CK = null, ckWait = null;
+  function clock3d(box) {
+    if (!box) return;
+    if (!ckWait && location.protocol === 'file:') ckWait = Promise.resolve(CK = false);   // modules don't load from file:// — the SVG clock
+    if (!ckWait) {
+      const u = new URL('../clock3d/clock3d.js', SELF_SRC || location.href);
+      if (SELF_SRC) u.search = new URL(SELF_SRC).search;   // the published build's ?v= keeps the module fresh too
+      ckWait = import(u.href).then(m => (CK = m.create() || false)).catch(() => (CK = false));
+    }
+    ckWait.then(() => { if (!CK || !box.isConnected) return; box.prepend(CK.canvas); box.classList.add('is-gl'); CK.reset(); });
+  }
+  function dialP(left) {   // the slice's share of the face: time left; a fresh start winds up from nothing
+    let p = TM.dur ? Math.max(0, Math.min(1, left / TM.dur)) : 0;
+    const w = TM.windAt && TM.run && !lowMotion() ? (Date.now() - TM.windAt) / 700 : 1;
+    return w >= 0 && w < 1 ? p * (1 - Math.pow(1 - w, 3)) : p;
+  }
+  function ckFrame(f) {
+    if (!CK || !CK.canvas.isConnected) return;
+    const k = root.dataset.theme + '|' + f.dataset.zone + '|' + f.className;
+    if (f._ckKey !== k) { const cs = getComputedStyle(f); f._ckKey = k; f._ckCol = [cs.getPropertyValue('--tm').trim(), cs.getPropertyValue('--tpie').trim() || cs.getPropertyValue('--tm-pie').trim()]; }
+    const left = tLeft();
+    CK.frame({ st: f.dataset.st, left, p: dialP(left), cd: +(f.dataset.cd || 0), windAt: TM.run ? TM.windAt : 0, ring: f.classList.contains('is-ring'), reduced: lowMotion(), body: f._ckCol[0], pie: f._ckCol[1] });
+  }
+  function ringNow(f) { f.classList.add('is-ring'); clearTimeout(f._ringT); f._ringT = setTimeout(() => f.classList.remove('is-ring'), RING_MS); }   // 5 · it rings: arcs + bolts, the 3D clock bounces
+  const BOLT = 'M6-38L-16 6H0L-8 38L18-8H2L10-38Z';
+  const RRING = `<span class="b-tring" aria-hidden="true"><svg viewBox="0 0 600 600"><g class="arcs"><path d="M112 170q-34-52 4-108"/><path d="M70 194q-54-80 6-166"/><path d="M488 170q34-52-4-108"/><path d="M530 194q54-80-6-166"/></g><g class="bolts">${[[34, 318, -24], [566, 318, 24], [178, 6, -38], [422, 6, 38]].map(([x, y, r]) => `<g transform="translate(${x} ${y}) rotate(${r})"><path d="${BOLT}"/></g>`).join('')}</g></svg></span>`;   // sound arcs + lightning (the references)
   const RR = 300, RC = 2 * Math.PI * RR;
   let pickIdx = -2;
   function renderScene() {
@@ -374,10 +404,10 @@
           </svg>
           <svg class="b-thand" viewBox="0 0 600 600"><line class="hand-halo" id="tHalo" x1="300" y1="330" x2="300" y2="170"/><line class="hand" id="tHand" x1="300" y1="330" x2="300" y2="170"/></svg>
           <svg class="b-tfacep" viewBox="0 0 600 600"><g class="b-tface" id="tFace"><circle class="hd" cx="300" cy="330" r="60"/><g class="ey"><ellipse class="sc" cx="277" cy="326" rx="18" ry="24"/><circle class="pu" cx="277" cy="326" r="10"/><circle class="hl" cx="281" cy="321" r="3.4"/></g><g class="ey"><ellipse class="sc" cx="323" cy="326" rx="18" ry="24"/><circle class="pu" cx="323" cy="326" r="10"/><circle class="hl" cx="327" cy="321" r="3.4"/></g><path class="shut" d="M263 330q14 12 28 0M309 330q14 12 28 0"/></g></svg>
-        </div></div><span class="b-tzzz"><b>z</b><b>z</b><b>Z</b></span><span class="b-tstars"></span></div>
+        </div></div><span class="b-tzzz"><b>z</b><b>z</b><b>Z</b></span><span class="b-tstars"></span>${RRING}</div>
         <b class="b-tnum" id="tBig"></b>
       </div></div>`;
-      dialLoop();
+      dialLoop(); clock3d(el.querySelector('.b-tclock'));
     }
     else if (scene === 'pick') { el.innerHTML = '<div class="b-fit"><div class="b-pick" id="pickView"></div></div>'; pickIdx = -2; drawPick(); }
     else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Tablets · paused</span>' : ''}<span class="b-pausel b-attn b-p3d" aria-hidden="true"><span class="b-pspin"><span class="b-pbody">${PSLABS}<span class="b-pface"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span></span></span></span><p lang="en">Eyes on me!</p><p class="b-spreply" lang="en">Eyes on you!</p></div></div>`; }
@@ -418,7 +448,7 @@
       const st = TM.done ? 'done' : TM.run ? 'run' : left < TM.dur ? 'paused' : 'ready';
       const cd = TM.run && left > 0 && left <= 5000 ? Math.ceil(left / 1000) : 0, big = $('#tBig');   // 4 · 5·4·3·2·1
       big.textContent = st === 'done' ? 'Time’s up!' : cd ? String(cd) : clock(left);
-      if (TM.done && !f.classList.contains('is-done') && f._ran) timeUpStars(f);   // 5 · the moment time is up (not when the scene reopens later)
+      if (TM.done && !f.classList.contains('is-done') && f._ran) { timeUpStars(f); ringNow(f); }   // 5 · the moment time is up (not when the scene reopens later)
       if (TM.run) f._ran = true;
       f.dataset.st = st;
       f.dataset.zone = TM.done ? '' : left <= 10000 ? 'red' : TM.dur && left / TM.dur <= 0.5 ? 'amber' : 'green';   // 3 · traffic lights
@@ -457,10 +487,13 @@
       face.querySelectorAll('.ey').forEach((g, i) => { const ex = i ? 323 : 277, pu = g.querySelector('.pu'), hl = g.querySelector('.hl'); pu.setAttribute('cx', (ex + dx).toFixed(1)); pu.setAttribute('cy', (326 + dy).toFixed(1)); hl.setAttribute('cx', (ex + dx + 4).toFixed(1)); hl.setAttribute('cy', (321 + dy).toFixed(1)); });
     }
   }
-  function dialLoop() {   // the slice and the hand move smoothly while the timer runs on screen
-    if (!$('#tFull')) return;
+  let dialRaf = 0;
+  function dialLoop() {   // the slice and the hand move smoothly while the timer runs on screen; the 3D clock draws every frame (one loop only)
+    cancelAnimationFrame(dialRaf);
+    const f = $('#tFull'); if (!f) return;
     if (TM.run) drawDial(tLeft());
-    requestAnimationFrame(dialLoop);
+    ckFrame(f);
+    dialRaf = requestAnimationFrame(dialLoop);
   }
   let actx = null;
   function chime() {   // three soft rising tones when the timer ends (teacher window only: it always has a user gesture)
