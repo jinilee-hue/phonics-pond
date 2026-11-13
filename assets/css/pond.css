@@ -1099,17 +1099,19 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .b-cvdefs{position:absolute;width:0;height:0;overflow:hidden}
 .b-cvkick{left:calc(var(--u) * 75.5);top:calc(var(--u) * 83.5);font-weight:880;font-size:calc(var(--u) * 29);letter-spacing:-.03em;word-spacing:-.04em;color:#34436D;
   filter:url(#cvClayS) drop-shadow(0 calc(var(--u) * 1.2) 0 rgba(25,40,85,.38)) drop-shadow(0 calc(var(--u) * 3) calc(var(--u) * 4) rgba(30,90,150,.22))}   /* clay: lit from the top left, a dark lower lip, a soft shadow */
-.b-cvtitle{left:calc(var(--u) * 74);top:calc(var(--u) * 126.7);font-weight:1000;font-size:calc(var(--u) * 67.6);letter-spacing:-.026em;word-spacing:-.1em;color:#35446F;
-  filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 2) 0 #27335D) drop-shadow(0 calc(var(--u) * 5) calc(var(--u) * 5) rgba(25,75,135,.26))}
+.b-cvtitle{left:calc(var(--u) * 74);top:calc(var(--u) * 126.7);font-weight:1000;font-size:calc(var(--u) * 67.6);letter-spacing:-.026em;word-spacing:-.1em;color:#FFFFFF;
+  -webkit-text-stroke:calc(var(--u) * 7) #2B3A66;paint-order:stroke fill;   /* white / yellow clay letters with a navy outline (user: "unit1은 흰색 … lesson 1은 노란색") */
+  filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 3) 0 #1F2B52) drop-shadow(0 calc(var(--u) * 6) calc(var(--u) * 6) rgba(25,60,120,.3))}
+.b-cvtitle .b-cvhl{color:#FFD43B}
 .b-cvletter{left:calc(var(--u) * 78);top:calc(var(--u) * 212);width:calc(var(--u) * 172);height:calc(var(--u) * 87);box-sizing:border-box;padding:calc(var(--u) * 10) calc(var(--u) * 4) 0 0;display:grid;place-items:center;isolation:isolate;border-radius:calc(var(--u) * 17);
   background:#FBD02E linear-gradient(180deg,#FFE35E 0%,#FDD535 30%,#FACB27 70%,#F1BC1C 100%);
   box-shadow:inset 0 calc(var(--u) * 3) calc(var(--u) * 2) rgba(255,255,255,.75),inset calc(var(--u) * 2) 0 calc(var(--u) * 3) rgba(255,255,255,.3),inset 0 calc(var(--u) * -5) calc(var(--u) * 5) rgba(205,128,0,.5),0 calc(var(--u) * 5) 0 #C08714,0 0 calc(var(--u) * 3) rgba(150,110,10,.25),0 calc(var(--u) * 7) calc(var(--u) * 8) rgba(110,80,10,.3)}
-.b-cvletter span,.b-cvletter{font-weight:1000;font-size:calc(var(--u) * 68);letter-spacing:.012em;color:#2E3D6A}
+.b-cvletter span,.b-cvletter{font-weight:1000;font-size:calc(var(--u) * 68);letter-spacing:.012em;color:#141414}   /* black (user: "Mm은 검은색으로") */
 .b-cvletter::before{content:"";position:absolute;z-index:-1;inset:calc(var(--u) * 10);border-radius:calc(var(--u) * 10);
   background:linear-gradient(180deg,#EDB91E 0%,#F9CF30 22%,#FDD83A 100%);
   box-shadow:inset 0 0 0 calc(var(--u) * 1.6) rgba(188,122,4,.72),inset 0 calc(var(--u) * 4) calc(var(--u) * 5) rgba(165,100,0,.55),0 calc(var(--u) * 1.8) 0 rgba(255,255,255,.75),0 calc(var(--u) * -1.2) 0 rgba(196,128,6,.35)}   /* the framed panel sits a step lower inside the rim */
 .b-cvletter{text-shadow:none}
-.b-cvletter>b{display:block;font-weight:inherit;filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 1.6) 0 #222E57)}
+.b-cvletter>b{display:block;font-weight:inherit;filter:url(#cvClay) drop-shadow(0 calc(var(--u) * 1.4) 0 rgba(0,0,0,.55))}
 .b-cvstart,.b-cvsay{display:grid;place-items:center;padding:0;border:0;cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;transition:transform .12s ease-out,box-shadow .12s ease-out}
 .b-cvstart{left:calc(var(--u) * 268);top:calc(var(--u) * 225);width:calc(var(--u) * 153);height:calc(var(--u) * 63);border-radius:calc(var(--u) * 16);
   background:#33467A linear-gradient(180deg,#6676A0 0%,#45577F 9%,#36497A 36%,#2F4373 80%,#293C6B 100%);

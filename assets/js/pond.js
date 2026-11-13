@@ -182,7 +182,7 @@
     clearTimeout(coverOutT); el.classList.remove('is-out');
     if (!el.hidden && el.dataset.n === String(n)) return;
     el.dataset.n = n;
-    el.innerHTML = `<svg class="b-cvdefs" width="0" height="0" aria-hidden="true">${CV_CLAY('cvClay', 2.2, 2.6, 0.5)}${CV_CLAY('cvClayS', 1.3, 0.9, 0.18)}</svg><img class="b-cvbg" src="${cv.bg}" alt="" draggable="false"><div class="b-cvui" lang="en"><p class="b-cvkick">${esc(cv.kicker)}</p><h2 class="b-cvtitle">${esc(cv.title)}</h2><span class="b-cvletter"><b>${esc(cv.letter)}</b></span>${STUDENT ? '' : `<button type="button" class="b-cvstart" data-b="coverstart" lang="ko" title="Start the lesson (→)">수업 시작</button><button type="button" class="b-cvsay" data-b="coversay" title="Say the lesson title" aria-label="Say the lesson title">${CV_SPK}</button>`}</div>`;   // the tablets: no buttons
+    el.innerHTML = `<svg class="b-cvdefs" width="0" height="0" aria-hidden="true">${CV_CLAY('cvClay', 2.2, 2.6, 0.5)}${CV_CLAY('cvClayS', 1.3, 0.9, 0.18)}</svg><img class="b-cvbg" src="${cv.bg}" alt="" draggable="false"><div class="b-cvui" lang="en"><p class="b-cvkick">${esc(cv.kicker)}</p><h2 class="b-cvtitle">${cv.title.split(' · ').map((t, i) => i ? `<span class="b-cvhl">${esc(t)}</span>` : esc(t)).join(' · ')}</h2><span class="b-cvletter"><b>${esc(cv.letter)}</b></span>${STUDENT ? '' : `<button type="button" class="b-cvstart" data-b="coverstart" lang="ko" title="Start the lesson (→)">수업 시작</button><button type="button" class="b-cvsay" data-b="coversay" title="Say the lesson title" aria-label="Say the lesson title">${CV_SPK}</button>`}</div>`;   // the tablets: no buttons
     el.hidden = false; fitCover();
   }
   // 8 · two real dice (user: "실제 3d 주사위", then "노란색바탕에 검은색 점 … 두개 정도가 작게 … 모서리들이 끊어지지 않고 부드럽게 이어진
