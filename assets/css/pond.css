@@ -1260,13 +1260,16 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 }
 
 /* ---------- the layer's rows slide (user: "activity와 그 밑에 mening first 리스트 … 스크롤 보이지 않고 슬라이드로") ---------- */
-.b-lycards::-webkit-scrollbar{display:none}
+.b-lycards::-webkit-scrollbar,.b-lysecs::-webkit-scrollbar{display:none}
+.b-lysecs{overscroll-behavior-x:contain}   /* the sections slide like the rows under them (user: "section 도 많아지면 슬라이드 형태로") */
 .b-lycards>*{scroll-snap-align:start}
-.b-lycards.is-drag{scroll-snap-type:none;cursor:grabbing;user-select:none}
+.b-lycards.is-drag,.b-lysecs.is-drag{scroll-snap-type:none;cursor:grabbing;user-select:none}
+.b-lysecs.is-drag .b-lysec::after{background:transparent}   /* no hover line while sliding */
+.b-lysecs.is-drag .b-lysec.is-on::after{background:var(--sec-on,var(--acc-text))}
 .b-lycards.is-drag>*{transform:none !important}   /* no press dip while sliding */
-.b-lycards.is-more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 72px),transparent)}   /* more that way */
-.b-lycards.is-more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px);mask-image:linear-gradient(90deg,transparent,#000 72px)}
-.b-lycards.is-more-l.is-more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent)}
-@media (hover:hover) and (pointer:fine){.b-lycards.is-more-l,.b-lycards.is-more-r{cursor:grab}}
+.b-lysecs.is-more-r,.b-lycards.is-more-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 72px),transparent)}   /* more that way */
+.b-lysecs.is-more-l,.b-lycards.is-more-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px);mask-image:linear-gradient(90deg,transparent,#000 72px)}
+.b-lysecs.is-more-l.is-more-r,.b-lycards.is-more-l.is-more-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent);mask-image:linear-gradient(90deg,transparent,#000 72px,#000 calc(100% - 72px),transparent)}
+@media (hover:hover) and (pointer:fine){.b-lycards.is-more-l,.b-lycards.is-more-r,.b-lysecs.is-more-l,.b-lysecs.is-more-r{cursor:grab}}
 /* every scrollbar: just the thumb — no track and no line along the scroll area (user: "세로 스크롤바 들어가는 영역표시로 라인 넣지마. 스크롤바만 나오게") */
 *{scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}

@@ -970,6 +970,7 @@
     clearTimeout(layerOutT); el.classList.remove('is-out'); dim.classList.remove('is-out'); root.classList.remove('is-dialout');   // (reopened while folding: it rises again)
     const was = !el.hidden, h0 = was ? el.getBoundingClientRect().height : 0, k0 = root.dataset.dialtool;   // a change while open morphs (user: "7번")
     const pOn = was ? el.querySelector('.b-lysec.is-on') : null, pR = pOn ? pOn.getBoundingClientRect() : null, pV = pOn ? pOn.dataset.v : null;   // the section line slides from here (user: "4번")
+    const pSecs = was ? el.querySelector('.b-lysecs') : null, pSL = pSecs ? pSecs.scrollLeft : null;   // where the section row was slid to: a re-render keeps it
     const selPrev = was ? selKeys(el) : new Set();   // opening: every selection is new
     el.hidden = dim.hidden = false;
     const tool = scene === 'timer' || scene === 'pick' ? scene : 'none'; root.dataset.dialtool = tool;   // a class tool on the board: its settings under the × (user); Pause has none (user: "아래 패널 열리는거만 빼줘") — the usual layer, Lesson on the Quick ring
@@ -985,13 +986,19 @@
       <div class="b-lyrow b-lyrow--mf"><div class="b-lyhead"><h3>${ic('layers')}Meaning First</h3></div><div class="b-lycards">${mfGroup.items.map(tile).join('')}</div></div>`;
     const on = el.querySelector('.b-card.is-on'); if (on) { const box = on.parentElement; box.scrollLeft = on.offsetLeft - box.offsetLeft - (box.clientWidth - on.offsetWidth) / 2; }
     rowsEdges(); requestAnimationFrame(rowsEdges);   // soft edges where a row has more
-    const sec = el.querySelector('.b-lysec.is-on'); if (sec) sec.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    const sec = el.querySelector('.b-lysec.is-on'), secs = el.querySelector('.b-lysecs');
+    if (secs) { if (pSL !== null) secs.scrollLeft = pSL; if (sec) secPeek(secs, sec, pSL !== null && !RM()); }
     if (pR && pR.width && sec && sec.dataset.v !== pV && !RM()) {   // the line slides over from the old tab (user: "4번"); it runs 12 px in from each side
       const nR = sec.getBoundingClientRect();
       sec.style.setProperty('--ux', (pR.left - nR.left).toFixed(1) + 'px'); sec.style.setProperty('--us', ((pR.width - 24) / Math.max(1, nR.width - 24)).toFixed(3)); sec.classList.add('is-slide');
     }
     markNew(el, selPrev);
     morphLayer(el, was, h0, k0);
+  }
+  function secPeek(box, t, smooth) {   // the current section in view, with its neighbour showing past the soft edge (user: "section 도 많아지면 슬라이드 형태로 다음 리스트가 보이게")
+    const b = box.getBoundingClientRect(), r = t.getBoundingClientRect(), pad = Math.max(0, Math.min(96, (b.width - r.width) / 2));
+    const d = r.left < b.left + pad ? r.left - b.left - pad : r.right > b.right - pad ? r.right - b.right + pad : 0;
+    if (Math.abs(d) > 1) box.scrollBy({ left: d, behavior: smooth ? 'smooth' : 'auto' });
   }
   function morphLayer(el, was, h0, k0) {   // changed while open: another kind of content rises in, the height glides (user: "7번"); placeFab rides on the final height
     el.getAnimations().forEach(x => { if (x.id === 'morph') x.cancel(); });   // a render during a morph (scene + Quick both render): measure the real height
@@ -1534,16 +1541,17 @@
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || (e.key === ' ' && tag !== 'button' && tag !== 'a')) { e.preventDefault(); e.stopPropagation(); startLesson(); return; }
     if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); e.stopPropagation(); }
   }, true);
-  // the layer's rows (Activity, Meaning First) slide — no scrollbar (user: "activity와 그 밑에 mening first 리스트 갯수 많으면 스크롤 보이지
-  // 않고 슬라이드로 뒤에껏도 확인할수 있게"): a finger swipes them natively, a mouse / pen drags (a flick glides on), a wheel turns sideways;
-  // a soft edge shows there is more that way. A drag is never a tap on a card
+  // the layer's rows (Sections, Activity, Meaning First) slide — no scrollbar (user: "activity와 그 밑에 mening first 리스트 갯수 많으면 스크롤 보이지
+  // 않고 슬라이드로 뒤에껏도 확인할수 있게", then "section 도 많아지면 슬라이드 형태로"): a finger swipes them natively, a mouse / pen drags
+  // (a flick glides on), a wheel turns sideways; a soft edge shows there is more that way. A drag is never a tap on a card or a tab
+  const SLIDE_ROWS = '.b-lycards,.b-lysecs';
   function rowEdges(box) { const m = box.scrollWidth - box.clientWidth; box.classList.toggle('is-more-l', m > 1 && box.scrollLeft > 2); box.classList.toggle('is-more-r', m > 1 && box.scrollLeft < m - 2); }
-  function rowsEdges() { document.querySelectorAll('.b-lycards').forEach(rowEdges); }
-  document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('b-lycards')) rowEdges(e.target); }, true);
+  function rowsEdges() { document.querySelectorAll(SLIDE_ROWS).forEach(rowEdges); }
+  document.addEventListener('scroll', e => { if (e.target.matches && e.target.matches(SLIDE_ROWS)) rowEdges(e.target); }, true);
   addEventListener('resize', rowsEdges);
   let rowDrag = null;
   document.addEventListener('pointerdown', e => {
-    const box = e.target.closest && e.target.closest('.b-lycards');
+    const box = e.target.closest && e.target.closest(SLIDE_ROWS);
     if (!box || e.pointerType === 'touch' || e.button !== 0 || box.scrollWidth <= box.clientWidth + 1) return;
     rowDrag = { box, id: e.pointerId, x: e.clientX, left: box.scrollLeft, moved: false, lx: e.clientX, t: performance.now(), v: 0 };
   });
@@ -1564,7 +1572,7 @@
   };
   document.addEventListener('pointerup', rowDrop); document.addEventListener('pointercancel', rowDrop);
   document.addEventListener('wheel', e => {   // a mouse wheel over a row slides it sideways
-    const box = e.target.closest && e.target.closest('.b-lycards');
+    const box = e.target.closest && e.target.closest(SLIDE_ROWS);
     if (!box || box.scrollWidth <= box.clientWidth + 1 || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
     e.preventDefault(); box.scrollLeft += e.deltaY;
   }, { passive: false });
