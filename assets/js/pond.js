@@ -118,7 +118,7 @@
       }
       else if (kind === 'fanfare') [[523, 0, 0.18], [659, 0.12, 0.18], [784, 0.24, 0.2], [1047, 0.38, 0.75]].forEach(([f, d, l]) => { tone(f, d, l, 0.12, 'triangle'); tone(f * 2, d, l * 0.6, 0.03); });
       else if (kind === 'dingdong') { tone(784, 0, 1.0, 0.17); tone(659, 0.42, 1.3, 0.17); }
-      else if (kind === 'pause') { const c = actx.createDynamicsCompressor(), m = actx.createGain(); c.threshold.value = -14; c.ratio.value = 3; m.gain.value = 0.8; m.connect(c).connect(actx.destination); pfxPlay(pfxSynth(actx, m, t0)); }   // the drop + beat call, the freeze
+      else if (kind === 'pause') { pfxHush(); const c = actx.createDynamicsCompressor(), m = actx.createGain(); c.threshold.value = -14; c.ratio.value = 3; m.gain.value = 0.8; m.connect(c).connect(actx.destination); PFX.bus = m; pfxPlay(actx, m, t0); }   // the call, the dance, the freeze — on its own bus (pfxHush)
     } catch (e) { /* no audio */ }
   }
   // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
@@ -347,12 +347,17 @@
     });
   }
   const PSLABS = Array.from({ length: 12 }, (_, i) => `<i class="b-pslab" style="transform:translateZ(${-2.5 * (i + 1)}px);--m:${84 - i * 2.4}%"></i>`).join('');   // the Eyes-on-me block's thickness
-  // Eyes on me — the user's pick (proposals 1 + 4: "첫번째 떨어지는거부터해서 두번째 얼음하는 거 같이"): the block drops in and calls
-  // "Eyes · on · me!" one word per beat (a clap + a xylophone note, a ring pulses), jumps — and FREEZES at the top of the jump: ice
-  // over the block, icicles, frost from the corners, a cooler room, snow; the class answers "Eyes on you!" (two ice tings).
-  // One timeline of Web Animations from 0 (fill both, so `__pondPfx.seek()` renders demos frame by frame); the sound is sfx('pause');
-  // reduced motion keeps the still scene. Leaving hands the block back to the exit's wink + spin (pfxEnd). Declared above STUDENT's return.
-  const PFX = { beats: [0.45, 0.9, 1.35], fz: 1.62, reply: 2.45, d: 7.5, on: 0 };
+  // Eyes on me — the user's pick, proposal 1 then proposal 4 joined end to end, longer and livelier (user: "첫번째 떨어지는거부터해서
+  // 두번째 얼음하는 거 같이", then "좀 짧은거 같은데", "신나게 좀더 길게", "1번이랑 2번이랑 붙여서 길게", "3d 느낌은 사라졌는걸?"):
+  //   call   0–2 s   it tumbles down and lands on each beat of "Eyes · on · me!" (clap + xylophone, a ring), then jumps in a full 3D spin
+  //   answer 2.25 s  two claps — "Eyes on you!" pops
+  //   dance  2.7 s   a little tune: a hop and a twist on every beat (one more spin), the words bounce in turn, notes float up
+  //   FREEZE 5.2 s   the music stops dead: caught mid-hop — ice over the face and the sides, icicles, frost, a cooler room, icy notes, snow
+  // 3D all through: never square to the room (the sides and the top show), a floor shadow that shrinks as it leaves the floor, words that
+  // flip in with a solid edge. One timeline of Web Animations from 0 (fill both: `__pondPfx.seek()` renders demos frame by frame); the sound
+  // is sfx('pause') on its own bus, hushed when the pause ends early or Sound effects goes Off; reduced motion keeps the still scene.
+  // Declared above STUDENT's return (the tablets draw it, silently).
+  const PFX = { beats: [0.45, 0.9, 1.35], land: 1.8, claps: [2.25, 2.475], dance: [2.7, 3.15, 3.6, 4.05, 4.5, 4.95], fz: 5.175, ting: 6.05, d: 14, on: 0, bus: null };
   const PFX_FLAKE = `<svg viewBox="-12 -12 24 24"><g fill="none" stroke-width="1.7" stroke-linecap="round">${[0, 60, 120, 180, 240, 300].map(r => `<g transform="rotate(${r})"><path d="M0 0V-10M0-6l-3-3M0-6l3-3"/></g>`).join('')}</g></svg>`;
   function pfxFrost(seed, flip) {   // frost dendrites growing out of a corner (deterministic)
     let sd = seed; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
@@ -367,14 +372,15 @@
   }
   function pauseFx(sp) {
     if (!sp || lowMotion() || typeof sp.animate !== 'function') return;
-    const box = sp.querySelector('.b-pausel'), spin = sp.querySelector('.b-pspin'), face = sp.querySelector('.b-pface');
-    const eyes = [...sp.querySelectorAll('.b-attn .eye')], pus = eyes.flatMap(e => [e.querySelector('.pu'), e.querySelector('.hl')]);
+    const box = sp.querySelector('.b-pausel'), spin = sp.querySelector('.b-pspin'), body = sp.querySelector('.b-pbody'), face = sp.querySelector('.b-pface');
+    const slabs = [...sp.querySelectorAll('.b-pslab')], eyes = [...sp.querySelectorAll('.b-attn .eye')], pus = eyes.flatMap(e => [e.querySelector('.pu'), e.querySelector('.hl')]);
     const text = sp.querySelector('p:not(.b-spreply)'), reply = sp.querySelector('.b-spreply');
-    if (!box || !spin || !face || !text || !reply) return;
+    if (!box || !spin || !body || !face || !text || !reply) return;
     sp.classList.add('fx');
-    const cs = getComputedStyle(sp), V = n => cs.getPropertyValue(n).trim(), D = PFX.d, FZ = PFX.fz, A = [], back = [];
-    const now = performance.now(), at = PFX.on ? Math.min(D, (now - PFX.on) / 1000) : 0; if (!PFX.on) PFX.on = now;   // drawn again mid-pause (theme, Share): carry on from there
-    const bg = cs.backgroundColor, hi = V('--pfx-hi'), ice = V('--pfx-ice'), cool = V('--pfx-cool'), glow = V('--pfx-glow');
+    const P = PFX, D = P.d, FZ = P.fz, A = [], back = [];
+    const cs = getComputedStyle(sp), V = n => cs.getPropertyValue(n).trim();
+    const bg = cs.backgroundColor, hi = V('--pfx-hi'), ext = V('--pfx-ext'), ice = V('--pfx-ice'), cool = V('--pfx-cool'), glow = V('--pfx-glow');
+    const now = performance.now(), at = P.on ? Math.min(D, (now - P.on) / 1000) : 0; if (!P.on) P.on = now;   // drawn again mid-pause (theme, Share): carry on from there
     const tr = (el, keep) => { const k = []; const api = { at(t, p, e = 'linear') { k.push([t, p, e]); return api; }, go() {
       k.sort((a, b) => a[0] - b[0]);
       const fr = k.map(([t, p, e]) => Object.assign({ offset: Math.min(1, Math.max(0, t / D)), easing: e }, p));
@@ -382,57 +388,115 @@
       if (fr[fr.length - 1].offset < 1) fr.push(Object.assign({}, fr[fr.length - 1], { offset: 1, easing: 'linear' }));
       const a = el.animate(fr, { duration: D * 1000, fill: 'both' }); A.push(a); if (keep) back.push(a);
     } }; return api; };
-    const TF = (y = 0, r = 0, sx = 1, sy = sx) => ({ transform: `translateY(${y}px) rotateZ(${r}deg) scale(${sx}, ${sy})` });
-    const SO = (sc, o = 1) => ({ transform: `scale(${sc})`, opacity: String(o) });
-    // the words, a ring per beat, the frost, the ice, the icicles, the snow
+    const SO = (sc, o = 1) => ({ transform: `scale(${sc})`, opacity: String(o), visibility: o > 0 ? 'visible' : 'hidden' });   // not shown = not there (contrast checks)
+    const mk = (cls, parent, before) => { const e = document.createElement('span'); e.className = cls; e.setAttribute('aria-hidden', 'true'); parent.insertBefore(e, before || null); return e; };
+    // the parts: words that flip in, a ring per landing, the floor shadow, notes, frost, ice (face + sides), icicles, snow
     text.innerHTML = 'Eyes on me!'.split(' ').map(w => `<span class="fxw">${w}</span>`).join(' ');
     const words = [...text.querySelectorAll('.fxw')];
-    const rings = PFX.beats.map(() => { const r = document.createElement('span'); r.className = 'fxring'; box.insertBefore(r, spin); return r; });
+    const RING = [...P.beats, P.land], rings = RING.map(() => mk('fxring', box, spin));
+    const shadow = mk('fxshadow', box, box.firstChild);
+    const notes = P.dance.map((_, k) => { const n = mk('fxnote', box); n.textContent = k % 2 ? '♫' : '♪'; return n; });
     const frost = document.createElement('div'); frost.className = 'fxfrost'; frost.setAttribute('aria-hidden', 'true');
     frost.innerHTML = [['left:0;top:0', '0 0', ''], ['right:0;top:0', '100% 0', 'translate(380 0) scale(-1 1)'], ['left:0;bottom:0', '0 100%', 'translate(0 380) scale(1 -1)'], ['right:0;bottom:0', '100% 100%', 'translate(380 380) scale(-1 -1)']]
       .map(([pos, o, flip], i) => `<svg viewBox="0 0 380 380" style="${pos};transform-origin:${o}">${pfxFrost(11 + i * 7, flip)}</svg>`).join('');
     sp.prepend(frost);
-    const iceL = document.createElement('span'); iceL.className = 'fxice'; face.appendChild(iceL);
-    const icl = document.createElement('span'); icl.className = 'fxicicles'; icl.innerHTML = '<i></i><i></i><i></i><i></i><i></i>'; face.appendChild(icl);
-    const flakes = [...Array(10)].map((_, i) => { const f = document.createElement('span'); f.className = 'fxflake'; f.setAttribute('aria-hidden', 'true'); f.innerHTML = PFX_FLAKE; f.style.left = (6 + i * 9.4 + (i % 3) * 1.6) + '%'; sp.appendChild(f); return f; });
+    mk('fxback', body);   // a real back, so the spins show a solid block (not the darkest slice)
+    const iceL = mk('fxice', face), icl = mk('fxicicles', face); icl.innerHTML = '<i></i><i></i><i></i><i></i><i></i>';
+    const fall = (sp.clientHeight || 800) + 80;
+    const flakes = [...Array(12)].map((_, i) => { const f = mk('fxflake', sp); f.innerHTML = PFX_FLAKE; f.style.left = (4 + i * 8.1 + (i % 3) * 1.4) + '%'; return f; });
     // the room: in, then cooler at the freeze
     tr(sp, true).at(0, { opacity: '0', backgroundColor: bg }).at(0.2, { opacity: '1', backgroundColor: bg }).at(FZ, { opacity: '1', backgroundColor: bg }, 'ease-out').at(FZ + 0.45, { opacity: '1', backgroundColor: cool }).go();
-    // the block: drops in, lands on beat 1, hops to 2 and 3, jumps — frozen at the top, a shiver
-    const k = tr(spin, true).at(0, TF(-560, 0, 0.94, 1.1)).at(0.15, TF(-560, 0, 0.94, 1.1), 'cubic-bezier(.5,0,1,.6)');
-    PFX.beats.forEach((t, i) => {
-      k.at(t, TF(0, 0, ...(i === 2 ? [1.26, 0.74] : [1.2, 0.8])), 'ease-out').at(t + 0.08, TF(0, 0, 0.92, 1.1), i === 2 ? 'cubic-bezier(.2,.75,.4,1)' : 'cubic-bezier(.2,.7,.4,1)');
-      if (i < 2) k.at(t + 0.225, TF(-56 - 16 * i, 0, 1, 1), 'cubic-bezier(.5,0,1,.6)');
+    // the block: .b-pspin = where it is (height, lean, squash) · .b-pbody = which way it faces · the floor shadow follows the height
+    const RX = -12, R0 = -20, BK = [], OR = [];
+    const bk = (t, y, rz = 0, sx = 1, sy = sx, e = 'linear') => BK.push([t, y, rz, sx, sy, e]);
+    const turn = (t, ry, rx = RX, e = 'ease-in-out') => OR.push([t, ry, rx, e]);
+    bk(0, -560, 0, 0.94, 1.1); bk(0.15, -560, 0, 0.94, 1.1, 'cubic-bezier(.5,0,1,.6)');   // call: it tumbles down …
+    turn(0, R0 - 220, 30); turn(0.15, R0 - 220, 30, 'cubic-bezier(.25,.6,.35,1)');
+    P.beats.forEach((t, i) => {   // … lands on each beat and twists in the air between
+      bk(t, 0, 0, ...(i === 2 ? [1.26, 0.74] : [1.2, 0.8]), 'ease-out'); bk(t + 0.08, 0, 0, 0.92, 1.1, 'cubic-bezier(.2,.7,.4,1)');
+      turn(t, R0);
+      if (i < 2) { bk(t + 0.225, -56 - 16 * i, 0, 1, 1, 'cubic-bezier(.5,0,1,.6)'); turn(t + 0.225, R0 + (i ? 26 : -26), RX - 6); }
     });
-    k.at(FZ, TF(-78, -9, 0.98, 1.03));
-    [-11.5, -6.5, -11, -7, -10.4, -8, -9].forEach((r, i) => k.at(FZ + 0.04 * (i + 1), TF(-78, r, 0.98, 1.03)));
-    k.at(D, TF(-78, -9, 0.98, 1.03)).go();
-    rings.forEach((r, i) => { const t = PFX.beats[i]; tr(r).at(0, { transform: 'scale(1)', opacity: '0', borderWidth: '14px' }).at(t - 0.001, { transform: 'scale(1)', opacity: '0', borderWidth: '14px' }).at(t, { transform: 'scale(1.02)', opacity: '1', borderWidth: '14px' }, 'cubic-bezier(.2,.7,.3,1)').at(t + 0.42, { transform: 'scale(1.7)', opacity: '0', borderWidth: '4px' }).go(); });
+    bk(1.6, -116, 0, 1, 1, 'cubic-bezier(.5,0,1,.6)'); bk(P.land, 0, 0, 1.2, 0.82, 'ease-out'); bk(P.land + 0.1, 0, 0, 0.97, 1.04, 'ease-in-out'); bk(P.land + 0.2, 0, 0, 1, 1);
+    turn(1.43, R0, RX, 'cubic-bezier(.4,.1,.3,1)'); turn(P.land, R0 + 360);   // … and jumps in a full spin
+    P.claps.forEach(t => { bk(t, 0, 0, 1, 1, 'ease-out'); bk(t + 0.08, 0, 0, 1.07, 0.93, 'ease-in-out'); bk(t + 0.18, 0, 0, 1, 1); });   // answer: a nod per clap
+    turn(P.claps[1] + 0.1, R0 + 360);
+    P.dance.forEach((T, k) => {   // dance: a hop and a twist on every beat, one more spin on the 4th
+      const sg = k % 2 ? 1 : -1, base = k >= 4 ? 720 : 360;
+      bk(T, 0, 0, 1.14, 0.86, 'ease-out'); bk(T + 0.07, 0, 0, 0.94, 1.08, 'cubic-bezier(.25,.7,.4,1)');
+      if (k < 5) bk(T + 0.225, k === 3 ? -86 : -44, -9 * sg, 1, 1, 'cubic-bezier(.5,0,1,.6)');
+      turn(T, base + 30 * sg, RX, k === 3 ? 'cubic-bezier(.3,.1,.3,1)' : 'ease-in-out');
+    });
+    bk(FZ, -44, -9, 0.98, 1.03);   // FREEZE: caught at the top of the hop, one shiver, then still
+    [-11.5, -6.5, -11, -7, -10.4, -8, -9].forEach((r, i) => bk(FZ + 0.04 * (i + 1), -44, r, 0.98, 1.03));
+    bk(D, -44, -9, 0.98, 1.03); turn(FZ, 756, -16); turn(D, 756, -16);
+    const kS = tr(spin, true), kB = tr(body, true), kH = tr(shadow);
+    BK.forEach(([t, y, rz, sx, sy, e]) => {
+      kS.at(t, { transform: `translateY(${y}px) rotateZ(${rz}deg) scale(${sx}, ${sy})` }, e);
+      const h = Math.min(1, -y / 240);
+      kH.at(t, { transform: `scale(${((1 - 0.55 * h) * Math.max(1, sx)).toFixed(3)})`, opacity: Math.max(0, 1 - 1.1 * h).toFixed(3) }, e);
+    });
+    OR.forEach(([t, ry, rx, e]) => kB.at(t, { transform: `rotateX(${rx}deg) rotateY(${ry}deg)` }, e));
+    kS.go(); kB.go(); kH.go();
+    rings.forEach((r, i) => { const t = RING[i], to = i === 3 ? 2.1 : 1.7, R = (sc, o, w) => ({ transform: `scale(${sc})`, opacity: String(o), borderWidth: w + 'px' });
+      tr(r).at(0, R(1, 0, 14)).at(t - 0.001, R(1, 0, 14)).at(t, R(1.02, 1, 14), 'cubic-bezier(.2,.7,.3,1)').at(t + 0.42, R(to, 0, 4)).go(); });
+    // the words: each flips in on its beat; in the dance they bounce in turn; frozen icy ("me!" caught mid-bounce)
+    const WT = (y, rx, sc) => `translateY(${y}px) rotateX(${rx}deg) scale(${sc})`;
     words.forEach((w, i) => {
-      const t = PFX.beats[i], big = i === 2 ? 1.5 : 1.32, H = { color: hi, textShadow: 'none' };
-      tr(w).at(0, Object.assign(SO(0, 0), H)).at(t - 0.001, Object.assign(SO(0, 0), H)).at(t, Object.assign(SO(0.6), H), 'cubic-bezier(.2,.9,.3,1.2)')
-        .at(t + 0.1, Object.assign(SO(big), H), 'ease-in-out').at(t + 0.24, Object.assign(SO(0.96), H), 'ease-in-out').at(t + 0.34, Object.assign(SO(1), H))
-        .at(FZ, Object.assign(SO(1), H), 'ease-out').at(FZ + 0.3, Object.assign(SO(1), { color: ice, textShadow: glow })).go();
+      const t = P.beats[i], big = i === 2 ? 1.5 : 1.32, W = (y, rx, sc, o = 1) => ({ transform: WT(y, rx, sc), opacity: String(o), visibility: o > 0 ? 'visible' : 'hidden', color: hi, textShadow: `0 6px 0 ${ext}` });
+      const k = tr(w).at(0, W(0, -95, 0.6, 0)).at(t - 0.001, W(0, -95, 0.6, 0)).at(t, W(0, -60, 0.7), 'cubic-bezier(.2,.9,.3,1.2)')
+        .at(t + 0.1, W(0, 10, big), 'ease-in-out').at(t + 0.24, W(0, -4, 0.96), 'ease-in-out').at(t + 0.34, W(0, 0, 1));
+      P.dance.forEach((T, n) => { if (n % 3 !== i) return; k.at(T, W(0, 0, 1), 'ease-out').at(T + 0.225, W(-18, 0, 1.1), 'ease-in'); if (T + 0.45 < FZ) k.at(T + 0.45, W(0, 0, 1)); });
+      const y = i === 2 ? -18 : 0, sc = i === 2 ? 1.1 : 1;
+      k.at(FZ, W(y, 0, sc), 'ease-out').at(FZ + 0.3, { transform: WT(y, 0, sc), opacity: '1', visibility: 'visible', color: ice, textShadow: glow }).go();
     });
+    notes.forEach((n, k) => {   // a note pops up on each dance beat and floats; the ones still in the air at the freeze freeze too. No fades:
+      // a see-through note reads as low-contrast text, so it grows in and shrinks away instead
+      const T = P.dance[k] + 0.05, x0 = [-200, 190, -170, 215, -215, 175][k];
+      const N = (age, sc, vis, frozen) => {
+        const f = Math.max(0, (age - 0.12) / 1.28), y = age < 0.12 ? 40 * (1 - age / 0.12) : -150 * f;
+        return Object.assign({ transform: `translate(${(x0 + 12 * f).toFixed(1)}px, ${y.toFixed(1)}px) scale(${sc}) rotate(${(-10 + 20 * f).toFixed(1)}deg)`, opacity: '1', visibility: vis ? 'visible' : 'hidden' },
+          frozen ? { color: ice, textShadow: glow } : { color: hi, textShadow: '0 0 0 transparent' });
+      };
+      const q = tr(n).at(0, N(0, 0.001, 0)).at(T - 0.001, N(0, 0.001, 0)).at(T, N(0, 0.4, 1), 'cubic-bezier(.2,.9,.3,1.3)').at(T + 0.12, N(0.12, 1, 1));
+      if (T + 1.3 <= FZ) q.at(T + 1.1, N(1.1, 1, 1), 'ease-in').at(T + 1.3, N(1.3, 0.001, 1)).at(T + 1.301, N(1.3, 0.001, 0));
+      else q.at(FZ, N(FZ - T, 1, 1), 'ease-out').at(FZ + 0.25, N(FZ - T, 1, 1, true));
+      q.go();
+    });
+    // the freeze: ice over the face and the sides, icicles, frost from the corners, snow
     tr(iceL).at(0, { opacity: '0', clipPath: 'circle(0% at 22% 18%)' }).at(FZ + 0.02, { opacity: '0', clipPath: 'circle(0% at 22% 18%)' }, 'ease-out').at(FZ + 0.08, { opacity: '1', clipPath: 'circle(8% at 22% 18%)' }, 'ease-out').at(FZ + 0.38, { opacity: '1', clipPath: 'circle(150% at 22% 18%)' }).go();
+    slabs.forEach(sl => tr(sl).at(0, { boxShadow: 'inset 0 0 0 300px rgba(196,232,255,0)' }).at(FZ + 0.05, { boxShadow: 'inset 0 0 0 300px rgba(196,232,255,0)' }, 'ease-out').at(FZ + 0.4, { boxShadow: 'inset 0 0 0 300px rgba(196,232,255,.5)' }).go());
     tr(icl).at(0, { transform: 'scaleY(0)' }).at(FZ + 0.22, { transform: 'scaleY(0)' }, 'cubic-bezier(.2,.8,.3,1.25)').at(FZ + 0.52, { transform: 'scaleY(1)' }).go();
     tr(frost).at(0, { opacity: '0' }).at(FZ, { opacity: '0' }, 'ease-out').at(FZ + 0.35, { opacity: '1' }).go();
     frost.querySelectorAll('svg').forEach((g, i) => tr(g).at(0, { transform: 'scale(.08)' }).at(FZ + 0.03 * i, { transform: 'scale(.08)' }, 'cubic-bezier(.15,.75,.3,1)').at(FZ + 0.7, { transform: 'scale(1)' }).go());
-    flakes.forEach((f, i) => { const t0 = FZ + 0.35 + (i * 0.37) % 2.2, sw = i % 2 ? 22 : -22, du = 4.6 + (i % 4) * 0.5;
-      tr(f).at(0, { transform: 'translate(0px, 0px) rotate(0deg)', opacity: '0' }).at(t0, { transform: 'translate(0px, 0px) rotate(0deg)', opacity: '.9' })
-        .at(t0 + du / 2, { transform: `translate(${sw}px, 430px) rotate(90deg)`, opacity: '.9' }).at(t0 + du, { transform: 'translate(0px, 880px) rotate(180deg)', opacity: '.9' }).go(); });
-    const R = PFX.reply;
-    tr(reply).at(0, SO(0, 0)).at(R - 0.001, SO(0, 0)).at(R, SO(0.4), 'cubic-bezier(.2,.9,.3,1.3)').at(R + 0.11, SO(1.18), 'ease-in-out').at(R + 0.225, SO(0.96), 'ease-out').at(R + 0.31, SO(1.1), 'ease-in-out').at(R + 0.45, SO(1)).go();
-    // the eyes: wide on each beat, wide open when frozen, one blink later; the pupils watch the words, then the class
+    flakes.forEach((f, i) => { const t0 = FZ + 0.35 + (i * 0.37) % 2.2, sw = i % 2 ? 22 : -22, du = 4.6 + (i % 4) * 0.5, F0 = { transform: 'translate(0px, 0px) rotate(0deg)', opacity: '0' };
+      tr(f).at(0, F0).at(t0 - 0.001, F0).at(t0, { transform: 'translate(0px, 0px) rotate(0deg)', opacity: '.9' })
+        .at(t0 + du / 2, { transform: `translate(${sw}px, ${fall / 2}px) rotate(90deg)`, opacity: '.9' }).at(t0 + du, { transform: `translate(0px, ${fall}px) rotate(180deg)`, opacity: '.9' }).go(); });
+    // "Eyes on you!": pops with the two claps, bounces again with the two icy tings after the freeze
+    const R = P.claps[0], RB = P.ting;
+    tr(reply).at(0, SO(0, 0)).at(R - 0.001, SO(0, 0)).at(R, SO(0.4), 'cubic-bezier(.2,.9,.3,1.3)').at(R + 0.11, SO(1.18), 'ease-in-out').at(R + 0.225, SO(0.96), 'ease-out').at(R + 0.31, SO(1.1), 'ease-in-out').at(R + 0.45, SO(1))
+      .at(RB, SO(1), 'ease-out').at(RB + 0.1, SO(1.14), 'ease-in-out').at(RB + 0.22, SO(0.97), 'ease-in-out').at(RB + 0.32, SO(1.05), 'ease-in-out').at(RB + 0.45, SO(1)).go();
+    // the eyes: wide on the beats, a happy squeeze on each dance beat, wide open when frozen (two slow blinks); the pupils watch the words,
+    // follow the dance, then look straight out at the class (and once around the room)
     eyes.forEach(e => { const q = tr(e, true), E = (t, sx, sy = sx, z = 'ease-in-out') => q.at(t, { transform: `scale(${sx}, ${sy})` }, z);
-      E(0, 1); PFX.beats.forEach((t, i) => { E(t, 1); E(t + 0.08, i === 2 ? 1.26 : 1.18); E(t + 0.3, 1); });
-      E(FZ, 1); E(FZ + 0.1, 1.24); E(4.4, 1.24); E(4.47, 1.24, 0.08); E(4.56, 1.24); E(D, 1.24); q.go(); });
-    pus.forEach(e => tr(e).at(0, { transform: 'translate(0px, 0px)' }).at(0.4, { transform: 'translate(0px, 8px)' }, 'ease-in-out').at(1.5, { transform: 'translate(0px, 8px)' }, 'ease-in-out').at(FZ, { transform: 'translate(0px, 0px)' }).go());
+      E(0, 1); P.beats.forEach((t, i) => { E(t, 1); E(t + 0.08, i === 2 ? 1.26 : 1.18); E(t + 0.3, 1); });
+      E(P.land, 1); E(P.land + 0.08, 1.15); E(P.land + 0.3, 1);
+      P.dance.forEach(T => { E(T, 1); E(T + 0.07, 1.1, 0.9); E(T + 0.25, 1); });
+      E(FZ, 1); E(FZ + 0.1, 1.24); [FZ + 2.3, FZ + 5.8].forEach(b => { E(b, 1.24); E(b + 0.07, 1.24, 0.08); E(b + 0.16, 1.24); }); E(D, 1.24); q.go(); });
+    const PU = [[0, 0, 0], [0.4, 0, 8], [1.4, 0, 8], [1.55, 0, 0], [2.15, 0, 0], [2.3, 0, 11], [2.6, 0, 11]];
+    P.dance.forEach((T, k) => PU.push([T + 0.1, k % 2 ? 10 : -10, 0]));
+    PU.push([FZ, 0, 0], [FZ + 3.2, 0, 0], [FZ + 3.45, -11, 2], [FZ + 3.95, -11, 2], [FZ + 4.25, 11, 2], [FZ + 4.75, 11, 2], [FZ + 5.05, 0, 0]);
+    pus.forEach(e => { const q = tr(e); PU.forEach(([t, x, y]) => q.at(t, { transform: `translate(${x}px, ${y}px)` }, 'ease-in-out')); q.go(); });
     if (at > 0) A.forEach(a => { a.currentTime = at * 1000; });
     sp._fx = A; sp._fxBack = back;
   }
   function pfxEnd(fit) {   // leaving: the room, the block and the eyes go back to the exit's own animations (from where they are)
     const sp = fit && fit.querySelector && fit.querySelector('.b-spause');
     if (sp && sp._fxBack) sp._fxBack.forEach(a => { try { a.commitStyles(); } catch (e) { /* not rendered */ } a.cancel(); });
+  }
+  function pfxHush() {   // the pause ended (or Sound effects went Off): whatever is still to play fades out at once
+    const m = PFX.bus; PFX.bus = null; if (!m) return;
+    try { const g = m.gain, t = m.context.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0, t + 0.12); setTimeout(() => { try { m.disconnect(); } catch (e) { /* gone */ } }, 400); } catch (e) { /* no audio */ }
   }
   function pfxSynth(ctx, out, t0) {   // the pause's sounds, synthesised (no files): t is seconds from t0
     const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = nb.getChannelData(0);
@@ -448,18 +512,36 @@
       ting(t, v = 1, k = 1) { const f = 1760 * k; [[1, 0.14, 1.7], [2.76, 0.06, 0.9], [5.4, 0.03, 0.45], [1.004, 0.06, 1.6]].forEach(([m, a, d]) => osc(t, 'sine', f * m, 0, 0, 0.002, a * v, d)); },
       crackle(t, dur = 0.3, v = 1) { for (let i = 0; i < 12; i++) noise(t + rnd() * dur, 'highpass', 3200 + rnd() * 2500, 0.7, 0.001, (0.14 + rnd() * 0.2) * v, 0.008 + rnd() * 0.01); },
       whoosh(t, dur, f1, f2, v = 0.15) { noise(t, 'bandpass', f1, 1.2, dur * 0.4, v, dur * 0.6, f2, dur); },
+      kick(t, v = 1) { osc(t, 'sine', 140, 48, 0.12, 0.002, 0.5 * v, 0.2); },
+      hat(t, v = 1) { noise(t, 'highpass', 7000, 0.8, 0.001, 0.13 * v, 0.035); },
+      bass(t, f, v = 1) { osc(t, 'triangle', f, 0, 0, 0.004, 0.3 * v, 0.28); },
+      thump(t, v = 1) { osc(t, 'sine', 110, 55, 0.1, 0.002, 0.4 * v, 0.18); },
+      cymbal(t, v = 1) { noise(t, 'highpass', 5200, 0.6, 0.002, 0.16 * v, 0.6); },
+      dive(t, v = 1) { osc(t, 'triangle', 620, 55, 0.24, 0.003, 0.16 * v, 0.26); noise(t, 'bandpass', 1400, 1.4, 0.003, 0.08 * v, 0.22, 180, 0.22); },
     };
   }
-  function pfxPlay(S) {   // drop · clap-clap-clap on "Eyes · on · me!" (C E G) · the freeze (ting, crackle, a cold wind) · the answer (two tings)
+  function pfxPlay(ctx, out, t0) {   // the call (claps on C E G), the spin + landing, the answer (two claps), the dance tune, FREEZE, the icy answer
+    const P = PFX, FZ = P.fz, S = pfxSynth(ctx, out, t0), mus = ctx.createGain(), M = pfxSynth(ctx, mus, t0);
+    mus.connect(out);
     S.whoosh(0.12, 0.3, 500, 2600, 0.12);
-    PFX.beats.forEach((t, i) => { S.clap(t); S.xylo(t, [523.25, 659.25, 783.99][i]); });
-    S.sparkle(1.4); S.ting(PFX.fz); S.crackle(PFX.fz + 0.02, 0.35); S.whoosh(PFX.fz, 0.8, 2600, 500, 0.1);
-    S.ting(PFX.reply, 0.5); S.ting(PFX.reply + 0.18, 0.45, 1.5);
+    P.beats.forEach((t, i) => { S.clap(t); S.xylo(t, [523.25, 659.25, 783.99][i]); });
+    S.whoosh(1.43, 0.36, 700, 3200, 0.1); S.sparkle(1.5); S.thump(P.land); S.cymbal(P.land, 0.7);
+    P.claps.forEach((t, i) => { S.clap(t, 0.9); S.xylo(t, [783.99, 1046.5][i]); });
+    const mel = [783.99, 659.25, 783.99, 1046.5, 880, 783.99, 659.25, 587.33, 659.25, 783.99, 880, 1046.5], bass = [130.81, 130.81, 174.61, 196, 130.81, 196];
+    const on = (t, f) => { if (t < FZ - 0.02) f(); };   // nothing starts once the music has stopped
+    P.dance.forEach((T, k) => {
+      on(T, () => { M.kick(T); M.bass(T, bass[k]); if (k % 2) M.clap(T, 0.5); M.xylo(T, mel[2 * k], 0.75); });
+      on(T + 0.225, () => { M.hat(T + 0.225); M.xylo(T + 0.225, mel[2 * k + 1], 0.6); });
+    });
+    mus.gain.setValueAtTime(1, t0 + FZ - 0.015); mus.gain.linearRampToValueAtTime(0.0001, t0 + FZ + 0.03);   // the music stops dead
+    S.dive(FZ - 0.01); S.ting(FZ + 0.03); S.crackle(FZ + 0.05, 0.35); S.whoosh(FZ + 0.03, 0.8, 2600, 500, 0.1);
+    S.ting(P.ting, 0.5); S.ting(P.ting + 0.18, 0.45, 1.5);
   }
-  window.__pondPfx = {   // demos / QA: seek the pause's timeline; render its sound offline
-    d: PFX.d,
+  window.__pondPfx = {   // demos / QA: seek the pause's timeline, render its sound offline, read its state
+    d: PFX.d, t: PFX,
     seek(t) { const sp = document.querySelector('#scene .b-spause'); (sp && sp._fx || []).forEach(a => { a.pause(); a.currentTime = t * 1000; }); return !!(sp && sp._fx); },
-    render(ctx, out, t0) { pfxPlay(pfxSynth(ctx, out, t0)); },
+    render(ctx, out, t0) { pfxPlay(ctx, out, t0); },
+    state() { return { on: !!PFX.on, bus: !!PFX.bus }; },
   };
   function timeUpStars(f) {   // 5 · stars burst from the clock when time is up
     const s = f.querySelector('.b-tstars'); if (!s || lowMotion()) return;
@@ -503,7 +585,7 @@
   let pickIdx = -2;
   function renderScene() {
     const el = $('#scene'); if (!el) return;
-    if (scene !== 'pause') PFX.on = 0;
+    if (scene !== 'pause') { PFX.on = 0; pfxHush(); }   // the pause is over: its timeline restarts next time, its sound stops now
     if (el.dataset.scene === 'pause' && scene !== 'pause' && !el.hidden && el.firstElementChild && !lowMotion()) {   // 16 · leaving "Eyes on me": a wink, then the block spins away
       pfxEnd(el.firstElementChild); const out = document.createElement('div'); out.className = 'b-scene b-sceneout'; out.appendChild(el.firstElementChild); el.after(out); setTimeout(() => out.remove(), 560);
     }
@@ -1585,7 +1667,7 @@
       case 'prev': FP.prev(); break;
       case 'coverstart': startLesson(); break;   // the picture's 수업 시작
       case 'covermusic': bgmToggle(); break;   // the cover's speaker = the music on / off (user)
-      case 'sfx': put('pondc-sfx', v === 'on'); bgmMuted = v !== 'on'; renderDisplay(); bgmSync(); bgmFace(); if (v === 'on') sfx('tick'); break;
+      case 'sfx': put('pondc-sfx', v === 'on'); bgmMuted = v !== 'on'; renderDisplay(); bgmSync(); bgmFace(); if (v === 'on') sfx('tick'); else pfxHush(); break;
       case 'close': FP.closeExtra(); break;
       case 'tool': FP.ink.set({ tool: v }); break;
       case 'color': FP.ink.set({ color: v }); break;

@@ -1273,15 +1273,16 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 @media (hover:hover) and (pointer:fine){.b-lycards.is-more-l,.b-lycards.is-more-r,.b-lysecs.is-more-l,.b-lysecs.is-more-r{cursor:grab}}
 /* every scrollbar: just the thumb — no track and no line along the scroll area (user: "세로 스크롤바 들어가는 영역표시로 라인 넣지마. 스크롤바만 나오게") */
 *{scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}
-/* Eyes on me: the drop + beat call, then the FREEZE (user picked 1 + 4) — pauseFx() runs one Web Animations timeline; these are its parts.
+/* Eyes on me: the call (1) then the freeze dance (4), joined and longer (user: "1번이랑 2번이랑 붙여서 길게", "3d 느낌") — pauseFx() runs
+   one Web Animations timeline; these are its parts. --pfx-ext = the words' solid 3D edge, --pfx-shadow = the block's floor shadow.
    Per theme: --pfx-hi = the words on the beat, --pfx-ice = the words once frozen (large text, ≥ 3:1 on the cooled room), --pfx-cool = the room */
 #scene .b-spause.fx,#scene .b-spause.fx .b-pspin,#scene .b-spause.fx .b-pbody,#scene .b-spause.fx .b-attn .eye,#scene .b-spause.fx .b-attn .pu,#scene .b-spause.fx .b-attn .hl,#scene .b-spause.fx .b-spreply{animation:none !important}
-.b-spause.fx{--pfx-hi:var(--acc);--pfx-ice:#EEF9FF;--pfx-cool:#13202D;--pfx-glow:0 0 24px rgba(150,215,255,.95);--pfx-frost:rgba(220,242,255,.55);--pfx-line:rgba(236,249,255,.85);--pfx-flake:#EAF7FF}
-:root[data-theme="mint"] .b-spause.fx{--pfx-hi:#C2266A;--pfx-ice:#0F4C81;--pfx-cool:#7CDAC6;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF}
-:root[data-theme="yellow"] .b-spause.fx{--pfx-hi:#8A5D00;--pfx-ice:#0F4C81;--pfx-cool:#F1E482;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF}
-:root[data-theme="white"] .b-spause.fx{--pfx-hi:#0057D9;--pfx-ice:#0F4C81;--pfx-cool:#EAF5FC;--pfx-glow:0 0 16px rgba(120,190,245,.7);--pfx-frost:rgba(140,195,240,.45);--pfx-line:rgba(100,165,225,.8);--pfx-flake:#7CC0EC}
-:root[data-theme="blue"] .b-spause.fx{--pfx-hi:#FFFFFF;--pfx-ice:#FFFFFF;--pfx-cool:#4481EC;--pfx-glow:0 3px 0 rgba(20,60,140,.55);--pfx-frost:rgba(255,255,255,.55);--pfx-line:rgba(255,255,255,.9);--pfx-flake:#FFFFFF}
-:root[data-theme="pink"] .b-spause.fx{--pfx-hi:#7A1040;--pfx-ice:#0F4C81;--pfx-cool:#F1A5CB;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF}
+.b-spause.fx{--pfx-hi:var(--acc);--pfx-ice:#EEF9FF;--pfx-cool:#13202D;--pfx-glow:0 0 24px rgba(150,215,255,.95);--pfx-frost:rgba(220,242,255,.55);--pfx-line:rgba(236,249,255,.85);--pfx-flake:#EAF7FF;--pfx-ext:#9A6B00;--pfx-shadow:rgba(255,200,61,.24)}
+:root[data-theme="mint"] .b-spause.fx{--pfx-hi:#C2266A;--pfx-ice:#0F4C81;--pfx-cool:#7CDAC6;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF;--pfx-ext:#7E1244;--pfx-shadow:rgba(0,60,45,.26)}
+:root[data-theme="yellow"] .b-spause.fx{--pfx-hi:#8A5D00;--pfx-ice:#0F4C81;--pfx-cool:#F1E482;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF;--pfx-ext:#4D3400;--pfx-shadow:rgba(90,60,0,.22)}
+:root[data-theme="white"] .b-spause.fx{--pfx-hi:#0057D9;--pfx-ice:#0F4C81;--pfx-cool:#EAF5FC;--pfx-glow:0 0 16px rgba(120,190,245,.7);--pfx-frost:rgba(140,195,240,.45);--pfx-line:rgba(100,165,225,.8);--pfx-flake:#7CC0EC;--pfx-ext:#003A91;--pfx-shadow:rgba(0,30,80,.14)}
+:root[data-theme="blue"] .b-spause.fx{--pfx-hi:#FFFFFF;--pfx-ice:#FFFFFF;--pfx-cool:#4481EC;--pfx-glow:0 3px 0 rgba(20,60,140,.55);--pfx-frost:rgba(255,255,255,.55);--pfx-line:rgba(255,255,255,.9);--pfx-flake:#FFFFFF;--pfx-ext:#2457C4;--pfx-shadow:rgba(0,20,80,.3)}
+:root[data-theme="pink"] .b-spause.fx{--pfx-hi:#7A1040;--pfx-ice:#0F4C81;--pfx-cool:#F1A5CB;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF;--pfx-ext:#3E0820;--pfx-shadow:rgba(90,0,40,.22)}
 .b-spause.fx .b-pspin{transform-origin:50% 100%}
 .b-spause.fx .b-pausel{position:relative;overflow:visible}
 .fxw{display:inline-block;transform-origin:50% 80%}
@@ -1298,3 +1299,8 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 .fxflake{position:absolute;top:-36px;width:30px;height:30px;pointer-events:none}
 .fxflake svg{display:block;width:100%;height:100%}
 .fxflake g{stroke:var(--pfx-flake)}
+.b-spause.fx p:not(.b-spreply){perspective:700px}
+.fxshadow{position:absolute;left:50%;bottom:-26px;width:210px;height:36px;margin-left:-105px;border-radius:50%;background:radial-gradient(closest-side,var(--pfx-shadow),transparent);pointer-events:none}
+.fxnote{position:absolute;left:50%;top:10px;margin-left:-20px;font:700 66px/1 var(--kid);color:var(--pfx-hi);pointer-events:none}
+.b-spause.fx{overflow:hidden}   /* the drop from above and the snow stay inside the scene (desk layout, taller screens) */
+.fxback{position:absolute;inset:0;border-radius:54px;transform:translateZ(-31px) rotateY(180deg);backface-visibility:hidden;background:radial-gradient(120% 90% at 30% 16%,rgba(255,255,255,.32),rgba(255,255,255,0) 46%),var(--acc);box-shadow:inset 0 -16px 26px rgba(0,0,0,.14)}
