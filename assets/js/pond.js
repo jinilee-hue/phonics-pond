@@ -19,7 +19,7 @@
   /* ---------- colour themes: [id, label, frame, board, action] ---------- */
   const THEMES = [['dark', 'Dark', '#0E1013', '#F6F3EC', '#FFC83D'], ['mint', 'Mint', '#62D4B4', '#FFFFFF', '#D33275'], ['yellow', 'Yellow', '#FFE15A', '#FFFFFF', '#1D1A0F'],
     ['white', 'White', '#FFFFFF', '#FFFFFF', '#0066FF'], ['blue', 'Blue', '#4D8DFF', '#FFFFFF', '#FFD43B'], ['pink', 'Pink', '#FF8DBB', '#FFFFFF', '#3B0F26']];
-  function applyTheme(t) { if (!THEMES.some(x => x[0] === t)) t = 'dark'; root.dataset.theme = t; root.dataset.tone = t === 'dark' ? 'dark' : 'bright'; }
+  function applyTheme(t) { if (!THEMES.some(x => x[0] === t)) t = 'dark'; const was = root.dataset.theme; root.dataset.theme = t; root.dataset.tone = t === 'dark' ? 'dark' : 'bright'; if (was && was !== t && document.querySelector('#scene .b-spause.fx')) renderScene(); }   // Eyes on me takes the new colours, from where it is
 
   /* ---------- the user's phonics games, matched to the lesson ---------- */
   const GAME_BASE = 'https://jinilee-hue.github.io/';
@@ -118,6 +118,7 @@
       }
       else if (kind === 'fanfare') [[523, 0, 0.18], [659, 0.12, 0.18], [784, 0.24, 0.2], [1047, 0.38, 0.75]].forEach(([f, d, l]) => { tone(f, d, l, 0.12, 'triangle'); tone(f * 2, d, l * 0.6, 0.03); });
       else if (kind === 'dingdong') { tone(784, 0, 1.0, 0.17); tone(659, 0.42, 1.3, 0.17); }
+      else if (kind === 'pause') { const c = actx.createDynamicsCompressor(), m = actx.createGain(); c.threshold.value = -14; c.ratio.value = 3; m.gain.value = 0.8; m.connect(c).connect(actx.destination); pfxPlay(pfxSynth(actx, m, t0)); }   // the drop + beat call, the freeze
     } catch (e) { /* no audio */ }
   }
   // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
@@ -346,6 +347,120 @@
     });
   }
   const PSLABS = Array.from({ length: 12 }, (_, i) => `<i class="b-pslab" style="transform:translateZ(${-2.5 * (i + 1)}px);--m:${84 - i * 2.4}%"></i>`).join('');   // the Eyes-on-me block's thickness
+  // Eyes on me — the user's pick (proposals 1 + 4: "첫번째 떨어지는거부터해서 두번째 얼음하는 거 같이"): the block drops in and calls
+  // "Eyes · on · me!" one word per beat (a clap + a xylophone note, a ring pulses), jumps — and FREEZES at the top of the jump: ice
+  // over the block, icicles, frost from the corners, a cooler room, snow; the class answers "Eyes on you!" (two ice tings).
+  // One timeline of Web Animations from 0 (fill both, so `__pondPfx.seek()` renders demos frame by frame); the sound is sfx('pause');
+  // reduced motion keeps the still scene. Leaving hands the block back to the exit's wink + spin (pfxEnd). Declared above STUDENT's return.
+  const PFX = { beats: [0.45, 0.9, 1.35], fz: 1.62, reply: 2.45, d: 7.5, on: 0 };
+  const PFX_FLAKE = `<svg viewBox="-12 -12 24 24"><g fill="none" stroke-width="1.7" stroke-linecap="round">${[0, 60, 120, 180, 240, 300].map(r => `<g transform="rotate(${r})"><path d="M0 0V-10M0-6l-3-3M0-6l3-3"/></g>`).join('')}</g></svg>`;
+  function pfxFrost(seed, flip) {   // frost dendrites growing out of a corner (deterministic)
+    let sd = seed; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    let d = '';
+    const br = (x, y, a, len, depth) => {
+      const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
+      d += `M${x.toFixed(1)} ${y.toFixed(1)}L${x2.toFixed(1)} ${y2.toFixed(1)}`;
+      if (depth) for (let i = 1; i <= 3; i++) { const f = i / 4, bx = x + (x2 - x) * f, by = y + (y2 - y) * f, bl = len * (0.42 - 0.07 * i) * (0.75 + 0.5 * rnd()); br(bx, by, a - 0.8 - 0.2 * rnd(), bl, depth - 1); br(bx, by, a + 0.8 + 0.2 * rnd(), bl, depth - 1); }
+    };
+    for (let i = 0; i < 6; i++) br(0, 0, (i + 0.5) / 6 * Math.PI / 2, 170 + 150 * rnd(), 2);
+    return `<g transform="${flip}"><path d="${d}"/></g>`;
+  }
+  function pauseFx(sp) {
+    if (!sp || lowMotion() || typeof sp.animate !== 'function') return;
+    const box = sp.querySelector('.b-pausel'), spin = sp.querySelector('.b-pspin'), face = sp.querySelector('.b-pface');
+    const eyes = [...sp.querySelectorAll('.b-attn .eye')], pus = eyes.flatMap(e => [e.querySelector('.pu'), e.querySelector('.hl')]);
+    const text = sp.querySelector('p:not(.b-spreply)'), reply = sp.querySelector('.b-spreply');
+    if (!box || !spin || !face || !text || !reply) return;
+    sp.classList.add('fx');
+    const cs = getComputedStyle(sp), V = n => cs.getPropertyValue(n).trim(), D = PFX.d, FZ = PFX.fz, A = [], back = [];
+    const now = performance.now(), at = PFX.on ? Math.min(D, (now - PFX.on) / 1000) : 0; if (!PFX.on) PFX.on = now;   // drawn again mid-pause (theme, Share): carry on from there
+    const bg = cs.backgroundColor, hi = V('--pfx-hi'), ice = V('--pfx-ice'), cool = V('--pfx-cool'), glow = V('--pfx-glow');
+    const tr = (el, keep) => { const k = []; const api = { at(t, p, e = 'linear') { k.push([t, p, e]); return api; }, go() {
+      k.sort((a, b) => a[0] - b[0]);
+      const fr = k.map(([t, p, e]) => Object.assign({ offset: Math.min(1, Math.max(0, t / D)), easing: e }, p));
+      if (fr[0].offset > 0) fr.unshift(Object.assign({}, fr[0], { offset: 0, easing: 'linear' }));
+      if (fr[fr.length - 1].offset < 1) fr.push(Object.assign({}, fr[fr.length - 1], { offset: 1, easing: 'linear' }));
+      const a = el.animate(fr, { duration: D * 1000, fill: 'both' }); A.push(a); if (keep) back.push(a);
+    } }; return api; };
+    const TF = (y = 0, r = 0, sx = 1, sy = sx) => ({ transform: `translateY(${y}px) rotateZ(${r}deg) scale(${sx}, ${sy})` });
+    const SO = (sc, o = 1) => ({ transform: `scale(${sc})`, opacity: String(o) });
+    // the words, a ring per beat, the frost, the ice, the icicles, the snow
+    text.innerHTML = 'Eyes on me!'.split(' ').map(w => `<span class="fxw">${w}</span>`).join(' ');
+    const words = [...text.querySelectorAll('.fxw')];
+    const rings = PFX.beats.map(() => { const r = document.createElement('span'); r.className = 'fxring'; box.insertBefore(r, spin); return r; });
+    const frost = document.createElement('div'); frost.className = 'fxfrost'; frost.setAttribute('aria-hidden', 'true');
+    frost.innerHTML = [['left:0;top:0', '0 0', ''], ['right:0;top:0', '100% 0', 'translate(380 0) scale(-1 1)'], ['left:0;bottom:0', '0 100%', 'translate(0 380) scale(1 -1)'], ['right:0;bottom:0', '100% 100%', 'translate(380 380) scale(-1 -1)']]
+      .map(([pos, o, flip], i) => `<svg viewBox="0 0 380 380" style="${pos};transform-origin:${o}">${pfxFrost(11 + i * 7, flip)}</svg>`).join('');
+    sp.prepend(frost);
+    const iceL = document.createElement('span'); iceL.className = 'fxice'; face.appendChild(iceL);
+    const icl = document.createElement('span'); icl.className = 'fxicicles'; icl.innerHTML = '<i></i><i></i><i></i><i></i><i></i>'; face.appendChild(icl);
+    const flakes = [...Array(10)].map((_, i) => { const f = document.createElement('span'); f.className = 'fxflake'; f.setAttribute('aria-hidden', 'true'); f.innerHTML = PFX_FLAKE; f.style.left = (6 + i * 9.4 + (i % 3) * 1.6) + '%'; sp.appendChild(f); return f; });
+    // the room: in, then cooler at the freeze
+    tr(sp, true).at(0, { opacity: '0', backgroundColor: bg }).at(0.2, { opacity: '1', backgroundColor: bg }).at(FZ, { opacity: '1', backgroundColor: bg }, 'ease-out').at(FZ + 0.45, { opacity: '1', backgroundColor: cool }).go();
+    // the block: drops in, lands on beat 1, hops to 2 and 3, jumps — frozen at the top, a shiver
+    const k = tr(spin, true).at(0, TF(-560, 0, 0.94, 1.1)).at(0.15, TF(-560, 0, 0.94, 1.1), 'cubic-bezier(.5,0,1,.6)');
+    PFX.beats.forEach((t, i) => {
+      k.at(t, TF(0, 0, ...(i === 2 ? [1.26, 0.74] : [1.2, 0.8])), 'ease-out').at(t + 0.08, TF(0, 0, 0.92, 1.1), i === 2 ? 'cubic-bezier(.2,.75,.4,1)' : 'cubic-bezier(.2,.7,.4,1)');
+      if (i < 2) k.at(t + 0.225, TF(-56 - 16 * i, 0, 1, 1), 'cubic-bezier(.5,0,1,.6)');
+    });
+    k.at(FZ, TF(-78, -9, 0.98, 1.03));
+    [-11.5, -6.5, -11, -7, -10.4, -8, -9].forEach((r, i) => k.at(FZ + 0.04 * (i + 1), TF(-78, r, 0.98, 1.03)));
+    k.at(D, TF(-78, -9, 0.98, 1.03)).go();
+    rings.forEach((r, i) => { const t = PFX.beats[i]; tr(r).at(0, { transform: 'scale(1)', opacity: '0', borderWidth: '14px' }).at(t - 0.001, { transform: 'scale(1)', opacity: '0', borderWidth: '14px' }).at(t, { transform: 'scale(1.02)', opacity: '1', borderWidth: '14px' }, 'cubic-bezier(.2,.7,.3,1)').at(t + 0.42, { transform: 'scale(1.7)', opacity: '0', borderWidth: '4px' }).go(); });
+    words.forEach((w, i) => {
+      const t = PFX.beats[i], big = i === 2 ? 1.5 : 1.32, H = { color: hi, textShadow: 'none' };
+      tr(w).at(0, Object.assign(SO(0, 0), H)).at(t - 0.001, Object.assign(SO(0, 0), H)).at(t, Object.assign(SO(0.6), H), 'cubic-bezier(.2,.9,.3,1.2)')
+        .at(t + 0.1, Object.assign(SO(big), H), 'ease-in-out').at(t + 0.24, Object.assign(SO(0.96), H), 'ease-in-out').at(t + 0.34, Object.assign(SO(1), H))
+        .at(FZ, Object.assign(SO(1), H), 'ease-out').at(FZ + 0.3, Object.assign(SO(1), { color: ice, textShadow: glow })).go();
+    });
+    tr(iceL).at(0, { opacity: '0', clipPath: 'circle(0% at 22% 18%)' }).at(FZ + 0.02, { opacity: '0', clipPath: 'circle(0% at 22% 18%)' }, 'ease-out').at(FZ + 0.08, { opacity: '1', clipPath: 'circle(8% at 22% 18%)' }, 'ease-out').at(FZ + 0.38, { opacity: '1', clipPath: 'circle(150% at 22% 18%)' }).go();
+    tr(icl).at(0, { transform: 'scaleY(0)' }).at(FZ + 0.22, { transform: 'scaleY(0)' }, 'cubic-bezier(.2,.8,.3,1.25)').at(FZ + 0.52, { transform: 'scaleY(1)' }).go();
+    tr(frost).at(0, { opacity: '0' }).at(FZ, { opacity: '0' }, 'ease-out').at(FZ + 0.35, { opacity: '1' }).go();
+    frost.querySelectorAll('svg').forEach((g, i) => tr(g).at(0, { transform: 'scale(.08)' }).at(FZ + 0.03 * i, { transform: 'scale(.08)' }, 'cubic-bezier(.15,.75,.3,1)').at(FZ + 0.7, { transform: 'scale(1)' }).go());
+    flakes.forEach((f, i) => { const t0 = FZ + 0.35 + (i * 0.37) % 2.2, sw = i % 2 ? 22 : -22, du = 4.6 + (i % 4) * 0.5;
+      tr(f).at(0, { transform: 'translate(0px, 0px) rotate(0deg)', opacity: '0' }).at(t0, { transform: 'translate(0px, 0px) rotate(0deg)', opacity: '.9' })
+        .at(t0 + du / 2, { transform: `translate(${sw}px, 430px) rotate(90deg)`, opacity: '.9' }).at(t0 + du, { transform: 'translate(0px, 880px) rotate(180deg)', opacity: '.9' }).go(); });
+    const R = PFX.reply;
+    tr(reply).at(0, SO(0, 0)).at(R - 0.001, SO(0, 0)).at(R, SO(0.4), 'cubic-bezier(.2,.9,.3,1.3)').at(R + 0.11, SO(1.18), 'ease-in-out').at(R + 0.225, SO(0.96), 'ease-out').at(R + 0.31, SO(1.1), 'ease-in-out').at(R + 0.45, SO(1)).go();
+    // the eyes: wide on each beat, wide open when frozen, one blink later; the pupils watch the words, then the class
+    eyes.forEach(e => { const q = tr(e, true), E = (t, sx, sy = sx, z = 'ease-in-out') => q.at(t, { transform: `scale(${sx}, ${sy})` }, z);
+      E(0, 1); PFX.beats.forEach((t, i) => { E(t, 1); E(t + 0.08, i === 2 ? 1.26 : 1.18); E(t + 0.3, 1); });
+      E(FZ, 1); E(FZ + 0.1, 1.24); E(4.4, 1.24); E(4.47, 1.24, 0.08); E(4.56, 1.24); E(D, 1.24); q.go(); });
+    pus.forEach(e => tr(e).at(0, { transform: 'translate(0px, 0px)' }).at(0.4, { transform: 'translate(0px, 8px)' }, 'ease-in-out').at(1.5, { transform: 'translate(0px, 8px)' }, 'ease-in-out').at(FZ, { transform: 'translate(0px, 0px)' }).go());
+    if (at > 0) A.forEach(a => { a.currentTime = at * 1000; });
+    sp._fx = A; sp._fxBack = back;
+  }
+  function pfxEnd(fit) {   // leaving: the room, the block and the eyes go back to the exit's own animations (from where they are)
+    const sp = fit && fit.querySelector && fit.querySelector('.b-spause');
+    if (sp && sp._fxBack) sp._fxBack.forEach(a => { try { a.commitStyles(); } catch (e) { /* not rendered */ } a.cancel(); });
+  }
+  function pfxSynth(ctx, out, t0) {   // the pause's sounds, synthesised (no files): t is seconds from t0
+    const nb = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate), nd = nb.getChannelData(0);
+    let sd = 7; const rnd = () => ((sd = (sd * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < nd.length; i++) nd[i] = rnd() * 2 - 1;
+    const env = (t, a, pk, dur) => { const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(pk, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + dur); return g; };
+    const osc = (t, type, f, f2, ft, a, pk, dur) => { t += t0; const o = ctx.createOscillator(), g = env(t, a, pk, dur); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + ft); o.connect(g).connect(out); o.start(t); o.stop(t + a + dur + 0.05); };
+    const noise = (t, type, f, q, a, pk, dur, f2, ft) => { t += t0; const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = env(t, a, pk, dur); s.buffer = nb; fl.type = type; fl.frequency.setValueAtTime(f, t); if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t + (ft || dur)); fl.Q.value = q; s.connect(fl).connect(g).connect(out); s.start(t, rnd() * 1.4); s.stop(t + a + dur + 0.05); };
+    return {
+      clap(t, v = 1) { [0, 0.011, 0.023].forEach(d => noise(t + d, 'bandpass', 1250, 1.1, 0.001, 0.6 * v, 0.012)); noise(t + 0.03, 'bandpass', 1150, 0.9, 0.002, 0.45 * v, 0.17); },
+      xylo(t, f, v = 1) { osc(t, 'sine', f, 0, 0, 0.003, 0.22 * v, 0.6); osc(t, 'sine', f * 3.93, 0, 0, 0.002, 0.05 * v, 0.12); osc(t, 'triangle', f * 2, 0, 0, 0.002, 0.03 * v, 0.2); },
+      sparkle(t, v = 1) { [2093, 2637, 3136, 3951, 4186].forEach((f, i) => osc(t + i * 0.038, 'sine', f, 0, 0, 0.002, 0.06 * v, 0.32)); },
+      ting(t, v = 1, k = 1) { const f = 1760 * k; [[1, 0.14, 1.7], [2.76, 0.06, 0.9], [5.4, 0.03, 0.45], [1.004, 0.06, 1.6]].forEach(([m, a, d]) => osc(t, 'sine', f * m, 0, 0, 0.002, a * v, d)); },
+      crackle(t, dur = 0.3, v = 1) { for (let i = 0; i < 12; i++) noise(t + rnd() * dur, 'highpass', 3200 + rnd() * 2500, 0.7, 0.001, (0.14 + rnd() * 0.2) * v, 0.008 + rnd() * 0.01); },
+      whoosh(t, dur, f1, f2, v = 0.15) { noise(t, 'bandpass', f1, 1.2, dur * 0.4, v, dur * 0.6, f2, dur); },
+    };
+  }
+  function pfxPlay(S) {   // drop · clap-clap-clap on "Eyes · on · me!" (C E G) · the freeze (ting, crackle, a cold wind) · the answer (two tings)
+    S.whoosh(0.12, 0.3, 500, 2600, 0.12);
+    PFX.beats.forEach((t, i) => { S.clap(t); S.xylo(t, [523.25, 659.25, 783.99][i]); });
+    S.sparkle(1.4); S.ting(PFX.fz); S.crackle(PFX.fz + 0.02, 0.35); S.whoosh(PFX.fz, 0.8, 2600, 500, 0.1);
+    S.ting(PFX.reply, 0.5); S.ting(PFX.reply + 0.18, 0.45, 1.5);
+  }
+  window.__pondPfx = {   // demos / QA: seek the pause's timeline; render its sound offline
+    d: PFX.d,
+    seek(t) { const sp = document.querySelector('#scene .b-spause'); (sp && sp._fx || []).forEach(a => { a.pause(); a.currentTime = t * 1000; }); return !!(sp && sp._fx); },
+    render(ctx, out, t0) { pfxPlay(pfxSynth(ctx, out, t0)); },
+  };
   function timeUpStars(f) {   // 5 · stars burst from the clock when time is up
     const s = f.querySelector('.b-tstars'); if (!s || lowMotion()) return;
     const C = ['#FFC53D', '#FF7A59', '#4CC38A', '#5AA9FF', '#C084FC', '#FF6FA8'];
@@ -388,8 +503,9 @@
   let pickIdx = -2;
   function renderScene() {
     const el = $('#scene'); if (!el) return;
+    if (scene !== 'pause') PFX.on = 0;
     if (el.dataset.scene === 'pause' && scene !== 'pause' && !el.hidden && el.firstElementChild && !lowMotion()) {   // 16 · leaving "Eyes on me": a wink, then the block spins away
-      const out = document.createElement('div'); out.className = 'b-scene b-sceneout'; out.appendChild(el.firstElementChild); el.after(out); setTimeout(() => out.remove(), 560);
+      pfxEnd(el.firstElementChild); const out = document.createElement('div'); out.className = 'b-scene b-sceneout'; out.appendChild(el.firstElementChild); el.after(out); setTimeout(() => out.remove(), 560);
     }
     const show = scene === 'timer' || scene === 'pick' || scene === 'pause';   // every class tool stays inside the 16:10 frame
     el.hidden = !show; el.dataset.scene = show ? scene : '';
@@ -420,7 +536,7 @@
       dialLoop(); clock3d(el.querySelector('.b-tclock'));
     }
     else if (scene === 'pick') { el.innerHTML = '<div class="b-fit"><div class="b-pick" id="pickView"></div></div>'; pickIdx = -2; drawPick(); }
-    else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Tablets · paused</span>' : ''}<span class="b-pausel b-attn b-p3d" aria-hidden="true"><span class="b-pspin"><span class="b-pbody">${PSLABS}<span class="b-pface"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span></span></span></span><p lang="en">Eyes on me!</p><p class="b-spreply" lang="en">Eyes on you!</p></div></div>`; }
+    else { el.innerHTML = `<div class="b-fit"><div class="b-spause"${STUDENT ? '' : ' data-b="scene" data-v="pause" title="Back to the lesson (B)"'}>${!STUDENT && live ? '<span class="b-spchip"><i class="b-live" aria-hidden="true"></i>Tablets · paused</span>' : ''}<span class="b-pausel b-attn b-p3d" aria-hidden="true"><span class="b-pspin"><span class="b-pbody">${PSLABS}<span class="b-pface"><svg viewBox="0 0 200 140" aria-hidden="true"><g class="eye"><ellipse class="sc" cx="60" cy="70" rx="44" ry="56"/><circle class="pu" cx="64" cy="80" r="23"/><circle class="hl" cx="73" cy="69" r="7.5"/></g><g class="eye"><ellipse class="sc" cx="140" cy="70" rx="44" ry="56"/><circle class="pu" cx="144" cy="80" r="23"/><circle class="hl" cx="153" cy="69" r="7.5"/></g></svg></span></span></span></span><p lang="en">Eyes on me!</p><p class="b-spreply" lang="en">Eyes on you!</p></div></div>`; pauseFx(el.querySelector('.b-spause')); }
     tick();
   }
   // Pick a student: one card in the middle — "Who's next?", the names roll in the same spot, then the reveal
@@ -820,7 +936,7 @@
     if (v !== 'lesson') pauseMedia();
     if (v === 'pick' && scene !== 'pick' && Date.now() - PK.t0 > 1500) { PK.name = ''; PK.seq = null; }   // a fresh "Who's next?" board
     scene = v; bgmSync();   // (the title page's music rests under a class tool)
-    if (v === 'pause') sfx('dingdong');   // 13 · the attention signal
+    if (v === 'pause') sfx('pause');   // the beat call, then the freeze (pauseFx); Display › Sound effects Off = quiet
     renderScenes(); renderScene(); renderDock(); broadcast(); if (dialOpen) { renderLayer(); placeFab(); renderFab(); }   // the layer follows the board (keys, the tablet preview)
   }
   const coreGuide = FP.guide;   // Meaning First › Games: what to say and do

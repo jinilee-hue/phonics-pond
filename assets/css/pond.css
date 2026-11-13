@@ -1273,3 +1273,28 @@ kbd{display:inline-grid;place-items:center;min-width:28px;height:26px;padding:0 
 @media (hover:hover) and (pointer:fine){.b-lycards.is-more-l,.b-lycards.is-more-r,.b-lysecs.is-more-l,.b-lysecs.is-more-r{cursor:grab}}
 /* every scrollbar: just the thumb — no track and no line along the scroll area (user: "세로 스크롤바 들어가는 영역표시로 라인 넣지마. 스크롤바만 나오게") */
 *{scrollbar-color:color-mix(in srgb,var(--tx) 32%,transparent) transparent}
+/* Eyes on me: the drop + beat call, then the FREEZE (user picked 1 + 4) — pauseFx() runs one Web Animations timeline; these are its parts.
+   Per theme: --pfx-hi = the words on the beat, --pfx-ice = the words once frozen (large text, ≥ 3:1 on the cooled room), --pfx-cool = the room */
+#scene .b-spause.fx,#scene .b-spause.fx .b-pspin,#scene .b-spause.fx .b-pbody,#scene .b-spause.fx .b-attn .eye,#scene .b-spause.fx .b-attn .pu,#scene .b-spause.fx .b-attn .hl,#scene .b-spause.fx .b-spreply{animation:none !important}
+.b-spause.fx{--pfx-hi:var(--acc);--pfx-ice:#EEF9FF;--pfx-cool:#13202D;--pfx-glow:0 0 24px rgba(150,215,255,.95);--pfx-frost:rgba(220,242,255,.55);--pfx-line:rgba(236,249,255,.85);--pfx-flake:#EAF7FF}
+:root[data-theme="mint"] .b-spause.fx{--pfx-hi:#C2266A;--pfx-ice:#0F4C81;--pfx-cool:#7CDAC6;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF}
+:root[data-theme="yellow"] .b-spause.fx{--pfx-hi:#8A5D00;--pfx-ice:#0F4C81;--pfx-cool:#F1E482;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF}
+:root[data-theme="white"] .b-spause.fx{--pfx-hi:#0057D9;--pfx-ice:#0F4C81;--pfx-cool:#EAF5FC;--pfx-glow:0 0 16px rgba(120,190,245,.7);--pfx-frost:rgba(140,195,240,.45);--pfx-line:rgba(100,165,225,.8);--pfx-flake:#7CC0EC}
+:root[data-theme="blue"] .b-spause.fx{--pfx-hi:#FFFFFF;--pfx-ice:#FFFFFF;--pfx-cool:#4481EC;--pfx-glow:0 3px 0 rgba(20,60,140,.55);--pfx-frost:rgba(255,255,255,.55);--pfx-line:rgba(255,255,255,.9);--pfx-flake:#FFFFFF}
+:root[data-theme="pink"] .b-spause.fx{--pfx-hi:#7A1040;--pfx-ice:#0F4C81;--pfx-cool:#F1A5CB;--pfx-glow:0 0 18px rgba(255,255,255,.9);--pfx-frost:rgba(255,255,255,.62);--pfx-line:rgba(255,255,255,.92);--pfx-flake:#FFFFFF}
+.b-spause.fx .b-pspin{transform-origin:50% 100%}
+.b-spause.fx .b-pausel{position:relative;overflow:visible}
+.fxw{display:inline-block;transform-origin:50% 80%}
+.fxring{position:absolute;left:50%;top:50%;width:230px;height:230px;margin:-115px 0 0 -115px;border-radius:62px;border:14px solid var(--acc);opacity:0;pointer-events:none}
+.fxfrost{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse 72% 68% at 50% 50%,transparent 52%,color-mix(in srgb,var(--pfx-frost) 30%,transparent) 72%,var(--pfx-frost) 100%)}
+.fxfrost svg{position:absolute;width:380px;height:380px;overflow:visible}
+.fxfrost path{fill:none;stroke:var(--pfx-line);stroke-width:3.2;stroke-linecap:round}
+.fxice{position:absolute;inset:-3px;border-radius:57px;pointer-events:none;background:linear-gradient(150deg,rgba(236,250,255,.74) 0%,rgba(190,230,255,.40) 36%,rgba(160,214,255,.30) 62%,rgba(236,250,255,.62) 100%);box-shadow:inset 0 0 0 5px rgba(255,255,255,.78),inset 0 -14px 26px rgba(110,180,255,.45),0 0 44px rgba(150,215,255,.55)}
+.fxice::before{content:'';position:absolute;left:14%;top:11%;width:44%;height:8%;border-radius:99px;background:rgba(255,255,255,.8);transform:rotate(-24deg)}
+.fxice::after{content:'';position:absolute;right:16%;bottom:16%;width:18%;height:5%;border-radius:99px;background:rgba(255,255,255,.6);transform:rotate(-24deg)}
+.fxicicles{position:absolute;left:16%;right:16%;bottom:-30px;height:34px;display:flex;justify-content:space-around;pointer-events:none;transform-origin:50% 0}
+.fxicicles i{width:0;height:0;border-left:9px solid transparent;border-right:9px solid transparent;border-top:30px solid rgba(222,243,255,.95);filter:drop-shadow(0 2px 3px rgba(120,190,255,.55))}
+.fxicicles i:nth-child(2n){border-top-width:19px}
+.fxflake{position:absolute;top:-36px;width:30px;height:30px;pointer-events:none}
+.fxflake svg{display:block;width:100%;height:100%}
+.fxflake g{stroke:var(--pfx-flake)}
