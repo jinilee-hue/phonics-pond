@@ -122,7 +122,7 @@
   // the lesson's title page (user: "lesson1에 대한 대문 이미지 … 수업시작을 누르면 시작", "배경이미지는 별도로 줄테니까 … 최대한 비슷하게"):
   // over the board while the lesson waits at its very first step. The picture is only the background; the words and the buttons are
   // real ones, placed on the picture's own grid (1024 units wide, 2752 × 1536 picture) so they keep their spot on it at any screen shape
-  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.' } };   // 🔊 reads the title (user picked)
+  const COVERS = { 1: { bg: 'assets/covers/lesson-1-bg.webp?v=2', kicker: 'From Phonics to Reading · K', title: 'Unit 1 · Lesson 1', letter: 'Mm', say: 'Unit 1, Lesson 1. M.', startSec: 'Alphabet' } };   // 수업 시작 → Alphabet's first class (user)   // 🔊 reads the title (user picked)
   let coverOn = false, coverOutT = 0;
   const atLessonStart = () => {   // where opening a lesson lands: Introduction · its first activity · step 1
     const st = FP.state(), fl = FP.flow(), intro = Math.max(0, FP.sections().findIndex(x => x.name === 'Introduction'));
@@ -159,23 +159,140 @@
     el.innerHTML = `<svg class="b-cvdefs" width="0" height="0" aria-hidden="true">${CV_CLAY('cvClay', 2.2, 2.6, 0.5)}${CV_CLAY('cvClayS', 1.3, 0.9, 0.18)}</svg><img class="b-cvbg" src="${cv.bg}" alt="" draggable="false"><div class="b-cvui" lang="en"><p class="b-cvkick">${esc(cv.kicker)}</p><h2 class="b-cvtitle">${esc(cv.title)}</h2><span class="b-cvletter"><b>${esc(cv.letter)}</b></span>${STUDENT ? '' : `<button type="button" class="b-cvstart" data-b="coverstart" lang="ko" title="Start the lesson (→)">수업 시작</button><button type="button" class="b-cvsay" data-b="coversay" title="Say the lesson title" aria-label="Say the lesson title">${CV_SPK}</button>`}</div>`;   // the tablets: no buttons
     el.hidden = false; fitCover();
   }
-  // 8 · a real dice (user: "실제 3d 주사위를 돌리는 모션"): six white faces with pips; every 4 s it hops, tumbles and lands on another face —
-  // the face comes from the clock, so the tablets roll and land alike
-  const DICE_PIPS = { 1: [5], 2: [1, 9], 3: [1, 5, 9], 4: [1, 3, 7, 9], 5: [1, 3, 5, 7, 9], 6: [1, 3, 4, 6, 7, 9] };
-  const DICE_ROT = { 1: [0, 0], 2: [0, -90], 3: [-90, 0], 4: [90, 0], 5: [0, 90], 6: [0, 180] }, DICE_SEQ = [3, 6, 2, 5, 1, 4];
-  const diceT = (ty, x, y) => `translateY(${ty}px) rotateX(-20deg) rotateY(28deg) rotateX(${x}deg) rotateY(${y}deg)`;
-  const dice3d = () => `<span class="b-dice" aria-hidden="true"><span class="b-dicecube" style="transform:${diceT(0, 0, 0)}">${[1, 2, 3, 4, 5, 6].map(f => `<span class="b-dface f${f}">${DICE_PIPS[f].map(p => `<i style="grid-area:${Math.ceil(p / 3)}/${(p - 1) % 3 + 1}"></i>`).join('')}</span>`).join('')}</span></span>`;
-  function diceLoop(cube) {
-    if (!cube || lowMotion()) return;
-    const roll = () => {
-      if (!document.contains(cube)) return;
-      const f = DICE_SEQ[Math.floor(Date.now() / 4000) % 6], [fx, fy] = DICE_ROT[f], x0 = +cube.dataset.x || 0, y0 = +cube.dataset.y || 0;
-      const x1 = fx + 360 * (Math.floor((x0 - fx) / 360) + 2), y1 = fy + 360 * (Math.floor((y0 - fy) / 360) + 1);
-      cube.animate([{ transform: diceT(0, x0, y0) }, { transform: diceT(-90, (x0 + x1) / 2, (y0 + y1) / 2), offset: 0.42 }, { transform: diceT(0, x1, y1), offset: 0.78 }, { transform: diceT(-16, x1, y1), offset: 0.88 }, { transform: diceT(0, x1, y1) }], { duration: 1150, easing: 'cubic-bezier(.3,.1,.3,1)', fill: 'forwards' });
-      cube.dataset.x = x1; cube.dataset.y = y1; cube.dataset.face = f;
-      setTimeout(roll, 4000 - (Date.now() % 4000));
+  // 8 · two real dice (user: "실제 3d 주사위", then "노란색바탕에 검은색 점 … 두개 정도가 작게 … 모서리들이 끊어지지 않고 부드럽게 이어진
+  // 형태의 3d"): a rounded-box mesh drawn with WebGL — smooth rims, lit, soft floor shadows. Every 4 s both hop, tumble and land
+  // face-up; faces and timing come from the clock, so the tablets roll alike. One canvas, moved into each new card.
+  const DICE_SEQ = [3, 6, 2, 5, 1, 4], DICE_UP = { 1: [-90, 0], 6: [90, 0], 2: [0, 90], 5: [0, -90], 3: [0, 0], 4: [180, 0] };   // [rx, rz] that turn face f up
+  const DICE_X = [-1.62, 1.62], DICE_ROLL = 1150, DICE_LAG = 150;
+  let DG = null;
+  const dice3d = () => `<span class="b-dice" aria-hidden="true"></span>`;
+  function diceGL() {
+    if (DG !== null) return DG;
+    const cv = document.createElement('canvas'); cv.className = 'b-dicegl';
+    const gl = cv.getContext('webgl', { alpha: true, antialias: true, premultipliedAlpha: true });
+    if (!gl) return (DG = false);
+    const sh = (type, src) => { const o = gl.createShader(type); gl.shaderSource(o, src); gl.compileShader(o); return o; };
+    const prog = (vs, fs) => { const p = gl.createProgram(); gl.attachShader(p, sh(gl.VERTEX_SHADER, vs)); gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p); return gl.getProgramParameter(p, gl.LINK_STATUS) ? p : null; };
+    const pd = prog(`attribute vec3 aP; attribute vec3 aN; uniform mat4 uM; uniform mat4 uVP; varying vec3 vO; varying vec3 vN; varying vec3 vW;
+      void main() { vO = aP; vN = mat3(uM) * aN; vec4 w = uM * vec4(aP, 1.0); vW = w.xyz; gl_Position = uVP * w; }`,
+      `precision mediump float; varying vec3 vO; varying vec3 vN; varying vec3 vW; uniform vec3 uCam;
+      float pip(vec2 uv, vec2 c) { return 1.0 - smoothstep(0.148, 0.178, length(uv - c)); }
+      float rim(vec2 uv, vec2 c) { float d = length(uv - c); return smoothstep(0.15, 0.19, d) * (1.0 - smoothstep(0.19, 0.26, d)); }
+      void main() {
+        vec3 a = abs(vO); vec2 uv; float f;
+        if (a.z >= a.x && a.z >= a.y) { uv = vO.xy; f = vO.z > 0.0 ? 1.0 : 6.0; }
+        else if (a.x >= a.y) { uv = vO.zy; f = vO.x > 0.0 ? 2.0 : 5.0; }
+        else { uv = vO.xz; f = vO.y > 0.0 ? 3.0 : 4.0; }
+        float o = 0.47, d = 0.0, r = 0.0;
+        if (f == 1.0 || f == 3.0 || f == 5.0) { d = max(d, pip(uv, vec2(0.0))); r = max(r, rim(uv, vec2(0.0))); }
+        if (f >= 2.0) { d = max(d, max(pip(uv, vec2(o, o)), pip(uv, vec2(-o, -o)))); r = max(r, max(rim(uv, vec2(o, o)), rim(uv, vec2(-o, -o)))); }
+        if (f >= 4.0) { d = max(d, max(pip(uv, vec2(-o, o)), pip(uv, vec2(o, -o)))); r = max(r, max(rim(uv, vec2(-o, o)), rim(uv, vec2(o, -o)))); }
+        if (f == 6.0) { d = max(d, max(pip(uv, vec2(-o, 0.0)), pip(uv, vec2(o, 0.0)))); r = max(r, max(rim(uv, vec2(-o, 0.0)), rim(uv, vec2(o, 0.0)))); }
+        vec3 n = normalize(vN), L = normalize(vec3(-0.42, 0.86, 0.52)), V = normalize(uCam - vW), H = normalize(L + V);
+        float df = max(dot(n, L), 0.0), sp = pow(max(dot(n, H), 0.0), 46.0), fr = pow(1.0 - max(dot(n, V), 0.0), 2.2);
+        vec3 body = vec3(1.0, 0.80, 0.17) * (1.0 - 0.10 * r);
+        vec3 base = mix(body, vec3(0.10, 0.09, 0.07), d);
+        vec3 col = base * (0.52 + 0.60 * df) + vec3(1.0, 0.98, 0.9) * sp * (0.42 - 0.3 * d) + vec3(1.0, 0.86, 0.4) * fr * 0.16;
+        gl_FragColor = vec4(min(col, vec3(1.0)), 1.0);
+      }`);
+    const ps = prog(`attribute vec3 aP; uniform mat4 uM; uniform mat4 uVP; varying vec2 vU; void main() { vU = aP.xz; gl_Position = uVP * uM * vec4(aP, 1.0); }`,
+      `precision mediump float; varying vec2 vU; uniform float uA; void main() { float k = 1.0 - smoothstep(0.15, 1.0, length(vU)); gl_FragColor = vec4(0.0, 0.0, 0.0, k * k * uA); }`);
+    if (!pd || !ps) return (DG = false);
+    // the rounded box: each face a grid, denser on the rims (equal angles), pushed out onto the rim radius
+    const R = 0.34, M = 7, ax = [], P = [], N = [], I = [];
+    for (let k = 0; k <= M; k++) ax.push(-1 + R * (1 - Math.cos(Math.PI / 2 * k / M)));
+    for (let k = 1; k < 4; k++) ax.push(-1 + R + (2 - 2 * R) * k / 4);
+    for (let k = M; k >= 0; k--) ax.push(1 - R * (1 - Math.cos(Math.PI / 2 * k / M)));
+    const G = ax.length, cl = v => Math.max(-(1 - R), Math.min(1 - R, v));
+    [[2, 0, 1], [0, 1, 2], [1, 2, 0]].forEach(([na, ua, va]) => [1, -1].forEach(sg => {
+      const base = P.length / 3;
+      for (let i = 0; i < G; i++) for (let j = 0; j < G; j++) {
+        const q = [0, 0, 0]; q[na] = sg; q[ua] = ax[i]; q[va] = ax[j];
+        const c = q.map(cl), dv = [q[0] - c[0], q[1] - c[1], q[2] - c[2]], l = Math.hypot(...dv);
+        const n = l > 1e-6 ? dv.map(x => x / l) : [0, 0, 0].map((_, k) => (k === na ? sg : 0));
+        P.push(c[0] + n[0] * R, c[1] + n[1] * R, c[2] + n[2] * R); N.push(...n);
+      }
+      for (let i = 0; i < G - 1; i++) for (let j = 0; j < G - 1; j++) { const v = base + i * G + j; I.push(v, v + G, v + 1, v + 1, v + G, v + G + 1); }
+    }));
+    const buf = (data, kind = gl.ARRAY_BUFFER) => { const b = gl.createBuffer(); gl.bindBuffer(kind, b); gl.bufferData(kind, data, gl.STATIC_DRAW); return b; };
+    const bP = buf(new Float32Array(P)), bN = buf(new Float32Array(N)), bI = buf(new Uint16Array(I), gl.ELEMENT_ARRAY_BUFFER), bQ = buf(new Float32Array([-1, 0, -1, 1, 0, -1, -1, 0, 1, 1, 0, 1]));
+    // matrices (column-major)
+    const mul = (a, b) => { const o = new Float32Array(16); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) { let t = 0; for (let k = 0; k < 4; k++) t += a[k * 4 + r] * b[c * 4 + k]; o[c * 4 + r] = t; } return o; };
+    const persp = (fov, asp, n, f) => { const t = 1 / Math.tan(fov / 2); return new Float32Array([t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) / (n - f), -1, 0, 0, 2 * f * n / (n - f), 0]); };
+    const look = (e, c) => {
+      const z = [e[0] - c[0], e[1] - c[1], e[2] - c[2]], zl = Math.hypot(...z); z.forEach((v, i) => (z[i] = v / zl));
+      const x = [z[2], 0, -z[0]], xl = Math.hypot(...x); x.forEach((v, i) => (x[i] = v / xl));
+      const y = [z[1] * x[2] - z[2] * x[1], z[2] * x[0] - z[0] * x[2], z[0] * x[1] - z[1] * x[0]];
+      return new Float32Array([x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -(x[0] * e[0] + x[1] * e[1] + x[2] * e[2]), -(y[0] * e[0] + y[1] * e[1] + y[2] * e[2]), -(z[0] * e[0] + z[1] * e[1] + z[2] * e[2]), 1]);
     };
-    setTimeout(roll, Math.max(500, 4000 - (Date.now() % 4000)));
+    const rot = (rx, ry, rz) => {   // Ry · Rx · Rz (degrees): the up face from rx / rz, the turn on the floor from ry
+      const [a, b, c] = [rx, ry, rz].map(v => v * Math.PI / 180), ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b), cc = Math.cos(c), sc = Math.sin(c);
+      const X = new Float32Array([1, 0, 0, 0, 0, ca, sa, 0, 0, -sa, ca, 0, 0, 0, 0, 1]), Y = new Float32Array([cb, 0, -sb, 0, 0, 1, 0, 0, sb, 0, cb, 0, 0, 0, 0, 1]), Z = new Float32Array([cc, sc, 0, 0, -sc, cc, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
+      return mul(Y, mul(X, Z));
+    };
+    const at = (x, y, z, sx = 1, sz = sx) => new Float32Array([sx, 0, 0, 0, 0, 1, 0, 0, 0, 0, sz, 0, x, y, z, 1]);
+    const CAM = [0, 4.1, 8.6], VIEW = look(CAM, [0, 0.35, 0]);
+    const dice = [0, 1].map(i => ({ x: DICE_X[i], a: [DICE_UP[DICE_SEQ[(i * 3) % 6]][0], i ? -28 : 24, DICE_UP[DICE_SEQ[(i * 3) % 6]][1]], from: null, to: null, t0: 0, y: 0 }));
+    let raf = 0;
+    function draw() {
+      const w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+      const sc = (cv.getBoundingClientRect().width / w) || 1, dpr = Math.min(2.5, (window.devicePixelRatio || 1) * sc);
+      const W = Math.round(w * dpr), H = Math.round(h * dpr); if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      gl.viewport(0, 0, W, H); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      const VP = mul(persp(30 * Math.PI / 180, w / h, 1, 40), VIEW);
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); gl.disable(gl.DEPTH_TEST);
+      gl.useProgram(ps); gl.bindBuffer(gl.ARRAY_BUFFER, bQ); const qp = gl.getAttribLocation(ps, 'aP'); gl.enableVertexAttribArray(qp); gl.vertexAttribPointer(qp, 3, gl.FLOAT, false, 0, 0);
+      gl.uniformMatrix4fv(gl.getUniformLocation(ps, 'uVP'), false, VP);
+      dice.forEach(d => { const k = 1 / (1 + d.y * 0.55); gl.uniformMatrix4fv(gl.getUniformLocation(ps, 'uM'), false, at(d.x + 0.12, -0.995, 0.1, 1.55 * (0.7 + 0.3 * k))); gl.uniform1f(gl.getUniformLocation(ps, 'uA'), 0.42 * k); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); });
+      gl.disableVertexAttribArray(qp);
+      gl.enable(gl.DEPTH_TEST); gl.disable(gl.BLEND); gl.useProgram(pd);
+      const ap = gl.getAttribLocation(pd, 'aP'), an = gl.getAttribLocation(pd, 'aN');
+      gl.bindBuffer(gl.ARRAY_BUFFER, bP); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ARRAY_BUFFER, bN); gl.enableVertexAttribArray(an); gl.vertexAttribPointer(an, 3, gl.FLOAT, false, 0, 0);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, bI);
+      gl.uniformMatrix4fv(gl.getUniformLocation(pd, 'uVP'), false, VP); gl.uniform3fv(gl.getUniformLocation(pd, 'uCam'), CAM);
+      dice.forEach(d => { gl.uniformMatrix4fv(gl.getUniformLocation(pd, 'uM'), false, mul(at(d.x, d.y, 0), rot(...d.a))); gl.drawElements(gl.TRIANGLES, I.length, gl.UNSIGNED_SHORT, 0); });
+      gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(an);
+    }
+    function frame() {   // a roll: angles glide to the landing (whole turns on the way), a hop with a small bounce
+      raf = 0; const now = Date.now(); let busy = false;
+      dice.forEach(d => {
+        if (!d.to) return;
+        const t = Math.min(1, (now - d.t0) / DICE_ROLL); if (t < 0) { busy = true; return; }
+        const e = 1 - Math.pow(1 - Math.min(1, t / 0.86), 3);
+        d.a = d.from.map((v, i) => v + (d.to[i] - v) * e);
+        d.y = t < 0.72 ? 1.45 * Math.sin(Math.PI * t / 0.72) : t < 0.9 ? 0.22 * Math.sin(Math.PI * (t - 0.72) / 0.18) : 0;
+        if (t >= 1) { d.a = d.to.map(v => ((v % 360) + 360) % 360); d.to = null; d.y = 0; } else busy = true;
+      });
+      draw();
+      if (busy && document.contains(cv)) raf = requestAnimationFrame(frame);
+    }
+    function roll(k) {   // roll number k (the clock's 4-s slot): both dice land face-up on DICE_SEQ, B a beat later
+      dice.forEach((d, i) => {
+        const f = DICE_SEQ[(k + i * 3) % 6], [ux, uz] = DICE_UP[f], yaw = (i ? -28 : 24) + (((k * 37 + i * 53) % 31) - 15);
+        const turn = (v0, v1, min) => { let v = v1; while (v - v0 < min) v += 360; return v; };   // land on the face after whole turns
+        d.from = d.a.slice(); d.to = [turn(d.a[0], ux, 360 + (i ? 180 : 0)), turn(d.a[1], yaw, i ? 90 : 0) - (i ? 360 : 0), turn(d.a[2], uz, i ? 360 : 180)];
+        d.t0 = k * 4000 + i * DICE_LAG; d.face = f;
+      });
+      cv.dataset.faces = dice.map(d => d.face).join(',');
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+    DG = { cv, draw, roll, dice };
+    return DG;
+  }
+  function diceLoop(slot) {
+    if (!slot) return;
+    const g = diceGL();
+    if (!g) { slot.innerHTML = ic('dices'); slot.classList.add('is-icon'); return; }   // no WebGL: the dice icon as before
+    slot.appendChild(g.cv); requestAnimationFrame(() => g.draw());
+    if (lowMotion()) return;
+    clearTimeout(g.timer);
+    const next = () => {
+      if (!document.contains(g.cv)) return;
+      g.roll(Math.floor(Date.now() / 4000));
+      g.timer = setTimeout(next, 4000 - (Date.now() % 4000) + 5);
+    };
+    g.timer = setTimeout(next, Math.max(450, 4000 - (Date.now() % 4000) + 5));
   }
   const PSLABS = Array.from({ length: 12 }, (_, i) => `<i class="b-pslab" style="transform:translateZ(${-2.5 * (i + 1)}px);--m:${84 - i * 2.4}%"></i>`).join('');   // the Eyes-on-me block's thickness
   function timeUpStars(f) {   // 5 · stars burst from the clock when time is up
@@ -240,7 +357,7 @@
         const kids = [...roster.filter(n => !picked.has(n)), ...roster.filter(n => picked.has(n))].slice(0, 12), N = kids.length;
         const bub = kids.map((n, i) => { const a = (120 + (i + 0.5) * 300 / N) * Math.PI / 180; return `<span class="b-pkbub" style="left:${(50 + 39 * Math.cos(a)).toFixed(1)}%;top:${(47 + 37 * Math.sin(a)).toFixed(1)}%;--c:${avColor(n)};--t:${(3 + (i % 4) * 0.45).toFixed(2)}s;--d:${(-i * 0.37).toFixed(2)}s;--sx:${i % 2 ? 6 : -6}px">${initial(n)}</span>`; }).join('');   // the bottom 60° stays clear (the name, the button)
         v.innerHTML = `<div class="b-pkbubs" aria-hidden="true">${bub}</div><div class="b-pkcard is-wait"${STUDENT ? '' : ' data-b="pickrand" title="Tap to pick a student"'}><span class="b-pkav">${dice3d()}</span><b lang="en">Who’s next?</b><span class="b-pkcap is-quiet" aria-hidden="true"></span></div>`;
-        diceLoop(v.querySelector('.b-dicecube'));
+        diceLoop(v.querySelector('.b-dice'));
       }
       else {
         const n = spinning ? PK.seq[k] : PK.name;
@@ -903,9 +1020,9 @@
     const pv = $('#fabPrev'), nx = $('#fabNext'); if (!pv || !nx) return;
     if (!pv.firstChild) { pv.innerHTML = ic('chevron-left'); nx.innerHTML = ic('chevron-left'); }
     const x = FP.mode() === 'extra', p = FP.peek(-1), n = FP.peek(1);
-    pv.disabled = !x && !p; nx.disabled = !x && !n;
+    pv.disabled = coverOn || (!x && !p); nx.disabled = !coverOn && !x && !n;   // the cover is the first page: › starts the lesson
     pv.title = x ? 'Back to the lesson' : p ? `Back — ${p.label} (←)` : 'Back';
-    nx.title = x ? 'Back to the lesson' : n ? `Next — ${n.label} (→)` : 'Next';
+    nx.title = coverOn ? 'Start the lesson (→)' : x ? 'Back to the lesson' : n ? `Next — ${n.label} (→)` : 'Next';
   }
   let drag = null, eatClickUntil = 0;
   function initMove() {
@@ -1318,7 +1435,17 @@
     const a = e.target.closest && e.target.closest('.b-fabside'); if (!a || !a.disabled || RM()) return;
     a.classList.remove('is-nope'); void a.offsetWidth; a.classList.add('is-nope');
   }, true);
-  function startLesson() { if (!coverOn) return; coverOn = false; renderCover(); broadcast(); }
+  function startLesson() {   // the cover is Lesson 1's title page (user: "그냥 저건 lesson1에 표지 같은거야"): 수업 시작 (and › / Space / PageDown
+    // on it) opens the lesson's first class — Alphabet, its first activity (user: "수업버튼 누르면 이제 lesseon1에 Alphabet 첫 수업에 들어가야해")
+    if (!coverOn) return;
+    const cv = COVERS[FP.lesson().n] || {}, secs = FP.sections(), i = Math.max(0, secs.findIndex(x => x.name === cv.startSec));
+    coverOn = false; renderCover();
+    if (FP.mode() === 'extra') FP.closeExtra();
+    if (FP.state().sec !== i) FP.setSection(i);   // (a nav: the board, the tablets and ‹ › follow)
+    const fl = FP.flow(), st = FP.state();
+    if (fl.length && (st.act !== fl[0].id || st.step !== 0)) FP.go(fl[0].id, 0);
+    else { renderSides(); broadcast(); }
+  }
   addEventListener('keydown', e => {   // the cover: → / Space / PageDown (clickers) start the lesson at its first step — no step skipped; ← / PageUp wait (Enter / Space on a focused button press it)
     if (!coverOn || e.metaKey || e.ctrlKey || e.altKey) return;
     const tag = (e.target.tagName || '').toLowerCase(); if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
@@ -1355,8 +1482,8 @@
   $('#rosterPop').addEventListener('toggle', e => { if (e.newState === 'open') { const tx = $('#rosterTx'); if (tx) tx.focus(); } });
 
   FP.on(e => {
-    if (e.type === 'lesson') { coverOn = !!COVERS[FP.lesson().n] && atLessonStart(); renderCover(); }   // opening a lesson = its title picture
-    if (e.type === 'nav' && coverOn && !atLessonStart()) { coverOn = false; renderCover(); }   // moved on (lesson map, a step chip …) = started
+    if (e.type === 'lesson') { coverOn = !!COVERS[FP.lesson().n] && atLessonStart(); renderCover(); renderSides(); }   // opening a lesson = its title picture
+    if (e.type === 'nav' && coverOn && !atLessonStart()) { coverOn = false; renderCover(); }   // moved on (lesson map, a step chip …) = started (renderSides follows below)
     if ((e.type === 'lesson' || e.type === 'nav') && addGamesStep()) { FP.render(); renderDock(); }
     if (e.type === 'lesson') { refreshGames(); renderTop(); }
     if (e.type === 'nav') { renderCrumb(); renderActs(); renderMedia(); renderDock(); renderFlow(); renderNotes(); renderGame(); broadcast(); renderSides(); if (dialOpen) { renderLayer(); requestAnimationFrame(placeFab); } }
@@ -1391,7 +1518,7 @@
   setInterval(tick, 250);
 
   FP.mount($('#stage'), { storageKey: 'fprk-bc', keepAwake: true, fresh: qs.has('fresh'), lesson: +qs.get('lesson') || 1, act: qs.get('act') || 'ls1', design: DESIGN });
-  addLayers(); coverOn = !!COVERS[FP.lesson().n] && atLessonStart(); renderCover(); refreshGames(); if (addGamesStep()) FP.render();   // a fresh class: the title picture first
+  addLayers(); coverOn = !!COVERS[FP.lesson().n]; renderCover(); refreshGames(); if (addGamesStep()) FP.render();   // opening the page = the title picture first, wherever the board was left (user: "첫화면 안바뀌었어?")
   renderScenes(); renderActs(); renderFab(); renderShareBtn(); renderMedia(); renderDock(); renderGame(); renderSides();
   new ResizeObserver(() => { root.style.setProperty('--guide-h', ($('#dock').offsetHeight || 0) + 'px'); placeFab(); }).observe($('#dock'));
   $('#stagewrap').addEventListener('click', e => { if ((menuOpen || dialOpen) && !e.target.closest('.b-fab, .b-layer')) { setMenu(false); setDial(false); e.stopPropagation(); e.preventDefault(); } }, true);   // a tap on the board closes the menu / Menu · Guide · Pen first
